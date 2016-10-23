@@ -1815,7 +1815,7 @@ void ATEXIT_handler() {
 }
 
 void print_welcome(void) {
-	printf(">> SEASnet shortcut v0.1 <<\n");
+	printf(">> SEASnet shortcut v0.2 <<\n");
 	printf("* current username: %s\n", user);
 	printf("* current default port: %d\n", port);
 }
