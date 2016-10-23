@@ -1,5 +1,9 @@
 # SEASnet Linux Server Login Helper
 
+## What's new in V0.2
+__Now cursor could be moved normally!___  
+__Also, history has been implemented. You can press UP arrow key to browse history.__
+
 ## Build
 type `make` in terminal to build.
 This requires flex and bison. If you want to build yourself, run `make required`. __ELSE__ just directly use the "seas" file included in this repository

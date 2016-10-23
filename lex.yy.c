@@ -490,8 +490,8 @@ int yy_flex_debug = 0;
 #define YY_MORE_ADJ 0
 #define YY_RESTORE_YY_MORE_OFFSET
 char *yytext;
-#line 1 "token.lex"
-#line 3 "token.lex"
+#line 1 "src/token.lex"
+#line 3 "src/token.lex"
   #include <stdio.h>
   #include <stdlib.h>
   #include <string.h>
@@ -686,7 +686,7 @@ YY_DECL
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
     
-#line 17 "token.lex"
+#line 17 "src/token.lex"
 
 #line 692 "lex.yy.c"
 
@@ -773,127 +773,127 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 18 "token.lex"
+#line 18 "src/token.lex"
 {return USR;}
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 19 "token.lex"
+#line 19 "src/token.lex"
 {return LOGIN;}
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 20 "token.lex"
+#line 20 "src/token.lex"
 {return PORT;}
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 21 "token.lex"
+#line 21 "src/token.lex"
 {return DL;}
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 22 "token.lex"
+#line 22 "src/token.lex"
 {return DLDIR;}
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 23 "token.lex"
+#line 23 "src/token.lex"
 {return EXIT;}
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 24 "token.lex"
+#line 24 "src/token.lex"
 {return HELP;}
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 25 "token.lex"
+#line 25 "src/token.lex"
 {return REPO;}
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 27 "token.lex"
+#line 27 "src/token.lex"
 {return USR;}
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 28 "token.lex"
+#line 28 "src/token.lex"
 {return USR;}
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 29 "token.lex"
+#line 29 "src/token.lex"
 {return PORT;}
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 30 "token.lex"
+#line 30 "src/token.lex"
 {return PORT;}
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 31 "token.lex"
+#line 31 "src/token.lex"
 {return LOGIN;}
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 32 "token.lex"
+#line 32 "src/token.lex"
 {return LOGIN;}
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 33 "token.lex"
+#line 33 "src/token.lex"
 {return DL;}
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 34 "token.lex"
+#line 34 "src/token.lex"
 {return DLDIR;}
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 35 "token.lex"
+#line 35 "src/token.lex"
 {return EXIT;}
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 37 "token.lex"
+#line 37 "src/token.lex"
 {return LNXSRV;}
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 38 "token.lex"
+#line 38 "src/token.lex"
 {return LNXSRV;}
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 39 "token.lex"
+#line 39 "src/token.lex"
 {return LNXSRV;}
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 40 "token.lex"
+#line 40 "src/token.lex"
 {return LEFT_ARROW;}
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 41 "token.lex"
+#line 41 "src/token.lex"
 {return RIGHT_ARROW;}
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 43 "token.lex"
+#line 43 "src/token.lex"
 {return HELP;}
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 44 "token.lex"
+#line 44 "src/token.lex"
 {return REPO;}
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 46 "token.lex"
+#line 46 "src/token.lex"
 {
   yylval.number = atoi(yytext);
   return NUM;
@@ -901,18 +901,18 @@ YY_RULE_SETUP
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 50 "token.lex"
+#line 50 "src/token.lex"
 {/*DO NOTHING*/}
 	YY_BREAK
 case 27:
 /* rule 27 can match eol */
 YY_RULE_SETUP
-#line 51 "token.lex"
+#line 51 "src/token.lex"
 {return EOL;}
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 52 "token.lex"
+#line 52 "src/token.lex"
 {
   yylval.string = (char*)malloc(yyleng+1);
   strcpy(yylval.string, yytext);
@@ -921,7 +921,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 58 "token.lex"
+#line 58 "src/token.lex"
 ECHO;
 	YY_BREAK
 #line 928 "lex.yy.c"
@@ -1921,7 +1921,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 58 "token.lex"
+#line 58 "src/token.lex"
 
 
 

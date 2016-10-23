@@ -62,7 +62,7 @@
 
 
 /* Copy the first part of user declarations.  */
-#line 1 "parser.y" /* yacc.c:339  */
+#line 1 "src/parser.y" /* yacc.c:339  */
 
   #include <stdio.h>
   #include <stdlib.h>
@@ -75,6 +75,14 @@
   #include <sys/ioctl.h>
   #include <sys/types.h>
   #include <sys/wait.h>
+  #include <stdbool.h>
+  #include <histedit.h>
+  #include <termios.h>
+
+  typedef struct yy_buffer_state * YY_BUFFER_STATE;
+  extern int yyparse();
+  extern YY_BUFFER_STATE yy_scan_string(char * str);
+  extern void yy_delete_buffer(YY_BUFFER_STATE buffer);
 
   int yylex(void);
   void yyerror(char const *s) {
@@ -110,7 +118,7 @@
       write(run_fd, run_type, strlen(run_type));
       write(run_fd, cmd, strlen(cmd));
 
-      execl("./.seas_ssh", NULL);
+      execl("./temp/.seas_ssh", NULL);
 
       perror("Failed");
       exit(EXIT_FAILURE);
@@ -137,7 +145,7 @@
         /*lseek(run_fd, 0, SEEK_SET);*/
         write(run_fd, run_type, strlen(run_type));
         write(run_fd, cmd, strlen(cmd));
-        execl("./.seas_ssh", NULL);
+        execl("./temp/.seas_ssh", NULL);
 
         perror("Failed");
         exit(EXIT_FAILURE);
@@ -151,7 +159,7 @@
         /*lseek(run_fd, 0, SEEK_SET);*/
         write(run_fd, run_type, strlen(run_type));
         write(run_fd, cmd, strlen(cmd));
-        execl("./.seas_ssh", NULL);
+        execl("./temp/.seas_ssh", NULL);
 
         perror("Failed");
         exit(EXIT_FAILURE);
@@ -180,7 +188,7 @@
         /*lseek(run_fd, 0, SEEK_SET);*/
         write(run_fd, run_type, strlen(run_type));
         write(run_fd, cmd, strlen(cmd));
-        execl("./.seas_ssh", NULL);
+        execl("./temp/.seas_ssh", NULL);
 
         perror("Failed");
         exit(EXIT_FAILURE);
@@ -195,7 +203,7 @@
         /*lseek(run_fd, 0, SEEK_SET);*/
         write(run_fd, run_type, strlen(run_type));
         write(run_fd, cmd, strlen(cmd));
-        execl("./.seas_ssh", NULL);
+        execl("./temp/.seas_ssh", NULL);
 
         perror("Failed");
         exit(EXIT_FAILURE);
@@ -206,7 +214,7 @@
     }
   }
 
-#line 210 "parser.tab.c" /* yacc.c:339  */
+#line 218 "parser.tab.c" /* yacc.c:339  */
 
 # ifndef YY_NULLPTR
 #  if defined __cplusplus && 201103L <= __cplusplus
@@ -269,12 +277,12 @@ extern int yydebug;
 
 union YYSTYPE
 {
-#line 145 "parser.y" /* yacc.c:355  */
+#line 153 "src/parser.y" /* yacc.c:355  */
 
   int number;
   char* string;
 
-#line 278 "parser.tab.c" /* yacc.c:355  */
+#line 286 "parser.tab.c" /* yacc.c:355  */
 };
 
 typedef union YYSTYPE YYSTYPE;
@@ -291,7 +299,7 @@ int yyparse (void);
 
 /* Copy the second part of user declarations.  */
 
-#line 295 "parser.tab.c" /* yacc.c:358  */
+#line 303 "parser.tab.c" /* yacc.c:358  */
 
 #ifdef short
 # undef short
@@ -590,9 +598,9 @@ static const yytype_uint8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint16 yyrline[] =
 {
-       0,   170,   170,   171,   172,   173,   174,   177,   187,   188,
-     189,   190,   193,   197,   201,   205,   209,   212,   215,   218,
-     225,   228,   232,   235,   249,   251,   256,   267,   269
+       0,   178,   178,   179,   180,   181,   182,   185,   194,   195,
+     196,   197,   200,   204,   208,   212,   216,   219,   222,   225,
+     232,   235,   239,   242,   256,   258,   261,   272,   274
 };
 #endif
 
@@ -1394,136 +1402,135 @@ yyreduce:
   switch (yyn)
     {
         case 2:
-#line 170 "parser.y" /* yacc.c:1661  */
+#line 178 "src/parser.y" /* yacc.c:1661  */
     {}
-#line 1400 "parser.tab.c" /* yacc.c:1661  */
+#line 1408 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 3:
-#line 171 "parser.y" /* yacc.c:1661  */
-    {printf("> ");}
-#line 1406 "parser.tab.c" /* yacc.c:1661  */
+#line 179 "src/parser.y" /* yacc.c:1661  */
+    {/*printf("> ");*/}
+#line 1414 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 4:
-#line 172 "parser.y" /* yacc.c:1661  */
-    {printf("> ");}
-#line 1412 "parser.tab.c" /* yacc.c:1661  */
+#line 180 "src/parser.y" /* yacc.c:1661  */
+    {/*printf("> ");*/}
+#line 1420 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 5:
-#line 173 "parser.y" /* yacc.c:1661  */
+#line 181 "src/parser.y" /* yacc.c:1661  */
     {exit(EXIT_SUCCESS);}
-#line 1418 "parser.tab.c" /* yacc.c:1661  */
-    break;
-
-  case 6:
-#line 174 "parser.y" /* yacc.c:1661  */
-    {
-  printf("* Usage *\n\tuser *username* : set default username\n\tport *portnum* : set default server number\n\tlogin *optional_portnum* : login to server\n\t@ *server_path* => *local_path\n\t*local_path* => @ *server_path* : download and upload files/directory\n\texit : exit program\n> ");
-}
 #line 1426 "parser.tab.c" /* yacc.c:1661  */
     break;
 
+  case 6:
+#line 182 "src/parser.y" /* yacc.c:1661  */
+    {
+  printf("* Usage *\n\tuser *username* : set default username\n\tport *portnum* : set default server number\n\tlogin *optional_portnum* : login to server\n\t@ *server_path* => *local_path\n\t*local_path* => @ *server_path* : download and upload files/directory\n\texit : exit program\n");
+}
+#line 1434 "parser.tab.c" /* yacc.c:1661  */
+    break;
+
   case 7:
-#line 177 "parser.y" /* yacc.c:1661  */
+#line 185 "src/parser.y" /* yacc.c:1661  */
     {
 #ifdef __APPLE__
 system("open https://github.com/kevinkassimo/SEASHelper");
 #elif __linux__
 system("xdg-open https://github.com/kevinkassimo/SEASHelper");
 #endif
-printf("> ");
 }
-#line 1439 "parser.tab.c" /* yacc.c:1661  */
+#line 1446 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 12:
-#line 193 "parser.y" /* yacc.c:1661  */
+#line 200 "src/parser.y" /* yacc.c:1661  */
     {
   int portnum = (yyvsp[-2].number);
   ssh_scp_to_local(FALSE, portnum, (yyvsp[-1].string), (yyvsp[0].string));
 }
-#line 1448 "parser.tab.c" /* yacc.c:1661  */
+#line 1455 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 13:
-#line 197 "parser.y" /* yacc.c:1661  */
+#line 204 "src/parser.y" /* yacc.c:1661  */
     {
   int portnum = (yyvsp[-1].number);
   ssh_scp_to_server(FALSE, portnum, (yyvsp[-3].string), (yyvsp[0].string));
 }
-#line 1457 "parser.tab.c" /* yacc.c:1661  */
+#line 1464 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 14:
-#line 201 "parser.y" /* yacc.c:1661  */
+#line 208 "src/parser.y" /* yacc.c:1661  */
     {
   int portnum = (yyvsp[-2].number);
   ssh_scp_to_local(TRUE, portnum, (yyvsp[-1].string), (yyvsp[0].string));
 }
-#line 1466 "parser.tab.c" /* yacc.c:1661  */
+#line 1473 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 15:
-#line 205 "parser.y" /* yacc.c:1661  */
+#line 212 "src/parser.y" /* yacc.c:1661  */
     {
   int portnum = (yyvsp[-1].number);
   ssh_scp_to_server(TRUE, portnum, (yyvsp[-3].string), (yyvsp[0].string));
 }
-#line 1475 "parser.tab.c" /* yacc.c:1661  */
+#line 1482 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 16:
-#line 209 "parser.y" /* yacc.c:1661  */
+#line 216 "src/parser.y" /* yacc.c:1661  */
     {
   ssh_scp_to_local(TRUE, port, (yyvsp[-2].string), (yyvsp[0].string));
 }
-#line 1483 "parser.tab.c" /* yacc.c:1661  */
+#line 1490 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 17:
-#line 212 "parser.y" /* yacc.c:1661  */
+#line 219 "src/parser.y" /* yacc.c:1661  */
     {
   ssh_scp_to_server(TRUE, port, (yyvsp[0].string), (yyvsp[-2].string));
 }
-#line 1491 "parser.tab.c" /* yacc.c:1661  */
+#line 1498 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 18:
-#line 215 "parser.y" /* yacc.c:1661  */
+#line 222 "src/parser.y" /* yacc.c:1661  */
     {
   ssh_scp_to_local(TRUE, port, (yyvsp[0].string), (yyvsp[-3].string));
 }
-#line 1499 "parser.tab.c" /* yacc.c:1661  */
+#line 1506 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 19:
-#line 218 "parser.y" /* yacc.c:1661  */
+#line 225 "src/parser.y" /* yacc.c:1661  */
     {
   ssh_scp_to_server(TRUE, port, (yyvsp[-3].string), (yyvsp[0].string));
 }
-#line 1507 "parser.tab.c" /* yacc.c:1661  */
+#line 1514 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 20:
-#line 225 "parser.y" /* yacc.c:1661  */
+#line 232 "src/parser.y" /* yacc.c:1661  */
     {
   ssh_login(port);
 }
-#line 1515 "parser.tab.c" /* yacc.c:1661  */
+#line 1522 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 21:
-#line 228 "parser.y" /* yacc.c:1661  */
+#line 235 "src/parser.y" /* yacc.c:1661  */
     {
   ssh_login((yyvsp[0].number));
 }
-#line 1523 "parser.tab.c" /* yacc.c:1661  */
+#line 1530 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 23:
-#line 235 "parser.y" /* yacc.c:1661  */
+#line 242 "src/parser.y" /* yacc.c:1661  */
     {
   /*Truncate only when we reset the new name*/
   ftruncate(port_fd, 0);
@@ -1537,11 +1544,11 @@ printf("> ");
   free(chr);
   printf("* Default login server has been changed into # %d\n", port);
 }
-#line 1541 "parser.tab.c" /* yacc.c:1661  */
+#line 1548 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 26:
-#line 256 "parser.y" /* yacc.c:1661  */
+#line 261 "src/parser.y" /* yacc.c:1661  */
     {
   /*Truncate only when we reset the new name*/
   ftruncate(usr_fd, 0);
@@ -1552,11 +1559,11 @@ printf("> ");
   write(usr_fd, user, strlen(user));
   printf("* Username has been changed into: %s\n", user);
 }
-#line 1556 "parser.tab.c" /* yacc.c:1661  */
+#line 1563 "parser.tab.c" /* yacc.c:1661  */
     break;
 
 
-#line 1560 "parser.tab.c" /* yacc.c:1661  */
+#line 1567 "parser.tab.c" /* yacc.c:1661  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -1784,16 +1791,59 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 272 "parser.y" /* yacc.c:1906  */
+#line 277 "src/parser.y" /* yacc.c:1906  */
 
 
-int main() {
+#define HIST_SIZE 800
+#define BUF_SIZE 1024
+#define TRUE 1
+#define FALSE 0
+
+const char* input;
+char* prompt(EditLine *e) {
+	return "> ";
+}
+int read_count;
+int p_fd;
+
+EditLine *_el;
+History *_hist;
+
+void ATEXIT_handler() {
+	history_end(_hist);
+	el_end(_el);
+}
+
+void print_welcome(void) {
+	printf(">> SEASnet shortcut v0.1 <<\n");
+	printf("* current username: %s\n", user);
+	printf("* current default port: %d\n", port);
+}
+
+int main(int argc, char *argv[]) {
+	atexit(ATEXIT_handler);
+
+	// This holds all the state for our line editor
+	_el = el_init(argv[0], stdin, stdout, stderr);
+	el_set(_el, EL_PROMPT, &prompt);
+	el_set(_el, EL_EDITOR, "emacs");
+	// This holds the info for our history
+	HistEvent _ev;
+	_hist = history_init();
+	if (_hist == 0) {
+		fprintf(stderr, "History could not be initialized\n");
+		exit(EXIT_FAILURE);
+	}
+	//Set the size of the history
+	history(_hist, &_ev, H_SETSIZE, HIST_SIZE);
+	//This sets up the call back functions for history functionality
+	el_set(_el, EL_HIST, history, _hist);
+
   memset(user, 0, BUF_SIZE);
 
-  usr_fd = open(".seas_usr", O_RDWR | O_CREAT, S_IRWXU);
-  port_fd = open(".seas_port", O_RDWR | O_CREAT, S_IRWXU);
-  run_fd = open(".seas_ssh", O_CREAT | O_TRUNC | O_RDWR, S_IRWXU);
-
+  usr_fd = open("temp/.seas_usr", O_RDWR | O_CREAT, S_IRWXU);
+  port_fd = open("temp/.seas_port", O_RDWR | O_CREAT, S_IRWXU);
+  run_fd = open("temp/.seas_ssh", O_CREAT | O_TRUNC | O_RDWR, S_IRWXU);
 
   if (read(usr_fd, user, BUF_SIZE-1) <= 0) {
     sprintf(user, "%s", "set_usr_name_please");
@@ -1805,9 +1855,28 @@ int main() {
     port = atoi((const char*) port_temp);
   }
 
-  printf(">> SEASnet shortcut v0.1 <<\n");
-  printf("* current username: %s\n", user);
-  printf("* current default port: %d\n", port);
-  printf("> ");
-  yyparse();
+  //fix weird bug
+  if (port == 0) {
+    port = 1;
+  }
+
+  //Print version
+  print_welcome();
+
+  //looping input and parsing
+	while (true) {
+		input = el_gets(_el, &read_count);
+
+		if (read_count > 0) {
+			history(_hist, &_ev, H_ENTER, input);
+		} else {
+			exit(EXIT_SUCCESS);
+		}
+
+    YY_BUFFER_STATE buffer = yy_scan_string((char*) input);
+    yyparse();
+    yy_delete_buffer(buffer);
+	}
+
+	exit(EXIT_SUCCESS);
 }

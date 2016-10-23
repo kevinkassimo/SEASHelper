@@ -10,6 +10,14 @@
   #include <sys/ioctl.h>
   #include <sys/types.h>
   #include <sys/wait.h>
+  #include <stdbool.h>
+  #include <histedit.h>
+  #include <termios.h>
+
+  typedef struct yy_buffer_state * YY_BUFFER_STATE;
+  extern int yyparse();
+  extern YY_BUFFER_STATE yy_scan_string(char * str);
+  extern void yy_delete_buffer(YY_BUFFER_STATE buffer);
 
   int yylex(void);
   void yyerror(char const *s) {
@@ -45,7 +53,7 @@
       write(run_fd, run_type, strlen(run_type));
       write(run_fd, cmd, strlen(cmd));
 
-      execl("./.seas_ssh", NULL);
+      execl("./temp/.seas_ssh", NULL);
 
       perror("Failed");
       exit(EXIT_FAILURE);
@@ -72,7 +80,7 @@
         /*lseek(run_fd, 0, SEEK_SET);*/
         write(run_fd, run_type, strlen(run_type));
         write(run_fd, cmd, strlen(cmd));
-        execl("./.seas_ssh", NULL);
+        execl("./temp/.seas_ssh", NULL);
 
         perror("Failed");
         exit(EXIT_FAILURE);
@@ -86,7 +94,7 @@
         /*lseek(run_fd, 0, SEEK_SET);*/
         write(run_fd, run_type, strlen(run_type));
         write(run_fd, cmd, strlen(cmd));
-        execl("./.seas_ssh", NULL);
+        execl("./temp/.seas_ssh", NULL);
 
         perror("Failed");
         exit(EXIT_FAILURE);
@@ -115,7 +123,7 @@
         /*lseek(run_fd, 0, SEEK_SET);*/
         write(run_fd, run_type, strlen(run_type));
         write(run_fd, cmd, strlen(cmd));
-        execl("./.seas_ssh", NULL);
+        execl("./temp/.seas_ssh", NULL);
 
         perror("Failed");
         exit(EXIT_FAILURE);
@@ -130,7 +138,7 @@
         /*lseek(run_fd, 0, SEEK_SET);*/
         write(run_fd, run_type, strlen(run_type));
         write(run_fd, cmd, strlen(cmd));
-        execl("./.seas_ssh", NULL);
+        execl("./temp/.seas_ssh", NULL);
 
         perror("Failed");
         exit(EXIT_FAILURE);
@@ -168,11 +176,11 @@
 %%
 
 prog: %empty {}
-| prog EOL {printf("> ");}
-| prog body EOL {printf("> ");}
+| prog EOL {/*printf("> ");*/}
+| prog body EOL {/*printf("> ");*/}
 | prog EXIT EOL {exit(EXIT_SUCCESS);}
 | prog HELP EOL {
-  printf("* Usage *\n\tuser *username* : set default username\n\tport *portnum* : set default server number\n\tlogin *optional_portnum* : login to server\n\t@ *server_path* => *local_path\n\t*local_path* => @ *server_path* : download and upload files/directory\n\texit : exit program\n> ");
+  printf("* Usage *\n\tuser *username* : set default username\n\tport *portnum* : set default server number\n\tlogin *optional_portnum* : login to server\n\t@ *server_path* => *local_path\n\t*local_path* => @ *server_path* : download and upload files/directory\n\texit : exit program\n");
 }
 | prog REPO EOL {
 #ifdef __APPLE__
@@ -180,7 +188,6 @@ system("open https://github.com/kevinkassimo/SEASHelper");
 #elif __linux__
 system("xdg-open https://github.com/kevinkassimo/SEASHelper");
 #endif
-printf("> ");
 }
 ;
 
@@ -251,8 +258,6 @@ port: PORT
 num: NUM
 ;
 
-
-
 setusr: usr name {
   /*Truncate only when we reset the new name*/
   ftruncate(usr_fd, 0);
@@ -271,13 +276,56 @@ name: NAME
 
 %%
 
-int main() {
+#define HIST_SIZE 800
+#define BUF_SIZE 1024
+#define TRUE 1
+#define FALSE 0
+
+const char* input;
+char* prompt(EditLine *e) {
+	return "> ";
+}
+int read_count;
+int p_fd;
+
+EditLine *_el;
+History *_hist;
+
+void ATEXIT_handler() {
+	history_end(_hist);
+	el_end(_el);
+}
+
+void print_welcome(void) {
+	printf(">> SEASnet shortcut v0.2 <<\n");
+	printf("* current username: %s\n", user);
+	printf("* current default port: %d\n", port);
+}
+
+int main(int argc, char *argv[]) {
+	atexit(ATEXIT_handler);
+
+	// This holds all the state for our line editor
+	_el = el_init(argv[0], stdin, stdout, stderr);
+	el_set(_el, EL_PROMPT, &prompt);
+	el_set(_el, EL_EDITOR, "emacs");
+	// This holds the info for our history
+	HistEvent _ev;
+	_hist = history_init();
+	if (_hist == 0) {
+		fprintf(stderr, "History could not be initialized\n");
+		exit(EXIT_FAILURE);
+	}
+	//Set the size of the history
+	history(_hist, &_ev, H_SETSIZE, HIST_SIZE);
+	//This sets up the call back functions for history functionality
+	el_set(_el, EL_HIST, history, _hist);
+
   memset(user, 0, BUF_SIZE);
 
-  usr_fd = open(".seas_usr", O_RDWR | O_CREAT, S_IRWXU);
-  port_fd = open(".seas_port", O_RDWR | O_CREAT, S_IRWXU);
-  run_fd = open(".seas_ssh", O_CREAT | O_TRUNC | O_RDWR, S_IRWXU);
-
+  usr_fd = open("temp/.seas_usr", O_RDWR | O_CREAT, S_IRWXU);
+  port_fd = open("temp/.seas_port", O_RDWR | O_CREAT, S_IRWXU);
+  run_fd = open("temp/.seas_ssh", O_CREAT | O_TRUNC | O_RDWR, S_IRWXU);
 
   if (read(usr_fd, user, BUF_SIZE-1) <= 0) {
     sprintf(user, "%s", "set_usr_name_please");
@@ -289,9 +337,28 @@ int main() {
     port = atoi((const char*) port_temp);
   }
 
-  printf(">> SEASnet shortcut v0.1 <<\n");
-  printf("* current username: %s\n", user);
-  printf("* current default port: %d\n", port);
-  printf("> ");
-  yyparse();
+  //fix weird bug
+  if (port == 0) {
+    port = 1;
+  }
+
+  //Print version
+  print_welcome();
+
+  //looping input and parsing
+	while (true) {
+		input = el_gets(_el, &read_count);
+
+		if (read_count > 0) {
+			history(_hist, &_ev, H_ENTER, input);
+		} else {
+			exit(EXIT_SUCCESS);
+		}
+
+    YY_BUFFER_STATE buffer = yy_scan_string((char*) input);
+    yyparse();
+    yy_delete_buffer(buffer);
+	}
+
+	exit(EXIT_SUCCESS);
 }
