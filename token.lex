@@ -21,6 +21,8 @@
 `f {return DL;}
 `d {return DLDIR;}
 `e {return EXIT;}
+`h {return HELP;}
+`r {return REPO;}
 
 user {return USR;}
 "user:" {return USR;}
@@ -37,6 +39,9 @@ srv {return LNXSRV;}
 server {return LNXSRV;}
 "<=" {return LEFT_ARROW;}
 "=>" {return RIGHT_ARROW;}
+
+help {return HELP;}
+repo {return REPO;}
 
 [1-9] {
   yylval.number = atoi(yytext);

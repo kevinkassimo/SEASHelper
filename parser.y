@@ -148,7 +148,7 @@
 }
 
 %token <number> CURSOR_LEFT CURSOR_RIGHT
-%token <number> USR
+%token <number> USR HELP REPO
 %token <number> PORT
 %token <number> LOGIN
 %token <number> LNXSRV
@@ -171,6 +171,17 @@ prog: %empty {}
 | prog EOL {printf("> ");}
 | prog body EOL {printf("> ");}
 | prog EXIT EOL {exit(EXIT_SUCCESS);}
+| prog HELP EOL {
+  printf("* Usage *\n\tuser *username* : set default username\n\tport *portnum* : set default server number\n\tlogin *optional_portnum* : login to server\n\t@ *server_path* => *local_path\n\t*local_path* => @ *server_path* : download and upload files/directory\n\texit : exit program\n> ");
+}
+| prog REPO EOL {
+#ifdef __APPLE__
+system("open https://github.com/kevinkassimo/SEASHelper");
+#elif __linux__
+system("xdg-open https://github.com/kevinkassimo/SEASHelper");
+#endif
+printf("> ");
+}
 ;
 
 body: setusr
@@ -232,6 +243,7 @@ setport: port num %prec lower {
   chr[1] = '\0';
   write(port_fd, chr, strlen(chr));
   free(chr);
+  printf("* Default login server has been changed into # %d\n", port);
 }
 ;
 port: PORT
@@ -249,6 +261,7 @@ setusr: usr name {
   memset(user, 0, BUF_SIZE);
   strcat(user, $<string>2);
   write(usr_fd, user, strlen(user));
+  printf("* Username has been changed into: %s\n", user);
 }
 ;
 usr: USR
@@ -276,7 +289,9 @@ int main() {
     port = atoi((const char*) port_temp);
   }
 
-  printf(">> SEASnet shortcut v0.1 <<\n> ");
-
+  printf(">> SEASnet shortcut v0.1 <<\n");
+  printf("* current username: %s\n", user);
+  printf("* current default port: %d\n", port);
+  printf("> ");
   yyparse();
 }
