@@ -49,16 +49,20 @@ extern int yydebug;
     CURSOR_RIGHT = 259,
     USR = 260,
     PORT = 261,
-    DL = 262,
-    DLDIR = 263,
-    EOL = 264,
-    NUM = 265,
-    EXIT = 266,
-    NAME = 267,
-    lowest = 268,
-    lower = 269,
-    higher = 270,
-    cursor = 271
+    LOGIN = 262,
+    LNXSRV = 263,
+    LEFT_ARROW = 264,
+    RIGHT_ARROW = 265,
+    DL = 266,
+    DLDIR = 267,
+    EOL = 268,
+    NUM = 269,
+    EXIT = 270,
+    NAME = 271,
+    lowest = 272,
+    lower = 273,
+    higher = 274,
+    cursor = 275
   };
 #endif
 
@@ -67,12 +71,12 @@ extern int yydebug;
 
 union YYSTYPE
 {
-#line 152 "parser.y" /* yacc.c:1915  */
+#line 145 "parser.y" /* yacc.c:1915  */
 
   int number;
   char* string;
 
-#line 76 "parser.tab.h" /* yacc.c:1915  */
+#line 80 "parser.tab.h" /* yacc.c:1915  */
 };
 
 typedef union YYSTYPE YYSTYPE;

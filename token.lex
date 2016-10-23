@@ -15,18 +15,28 @@
 %}
 
 %%
-$u {return USR;}
-$p {return PORT;}
-$f {return DL;}
-$d {return DLDIR;}
-$e {return EXIT;}
+`u {return USR;}
+`l {return LOGIN;}
+`p {return PORT;}
+`f {return DL;}
+`d {return DLDIR;}
+`e {return EXIT;}
 
-usr {return USR;}
+user {return USR;}
+"user:" {return USR;}
 port {return PORT;}
-dfile {return DL;}
-ddir {return DLDIR;}
+"port:" {return PORT;}
+log {return LOGIN;}
+login {return LOGIN;}
+fcp {return DL;}
+dcp {return DLDIR;}
 exit {return EXIT;}
-=> {/*ignored*/}
+
+"@" {return LNXSRV;}
+srv {return LNXSRV;}
+server {return LNXSRV;}
+"<=" {return LEFT_ARROW;}
+"=>" {return RIGHT_ARROW;}
 
 [1-9] {
   yylval.number = atoi(yytext);

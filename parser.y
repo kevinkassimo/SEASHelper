@@ -20,24 +20,17 @@
   #define TRUE 1
   #define FALSE 0
 
-  int fd;
+  int usr_fd;
+  int port_fd;
   int run_fd;
   int runningfile;
+
   char user[BUF_SIZE];
+  int port = 1;
 
   int rc;
 
   void ssh_login(int port) {
-    /*
-    ftruncate(run_fd, 0);
-    char cmd[BUF_SIZE];
-    sprintf(cmd, "ssh %s@lnxsrv0%d.seas.ucla.edu", user, port);
-    char* run_type = strdup("#!/bin/bash\n");
-    lseek(run_fd, 0, SEEK_SET);
-    write(run_fd, run_type, strlen(run_type));
-    write(run_fd, cmd, strlen(cmd));
-    execl("./.seas_ssh", NULL);
-    */
     rc = fork();
     if (rc == 0) {
       char cmd[BUF_SIZE];
@@ -157,6 +150,9 @@
 %token <number> CURSOR_LEFT CURSOR_RIGHT
 %token <number> USR
 %token <number> PORT
+%token <number> LOGIN
+%token <number> LNXSRV
+%token <number> LEFT_ARROW RIGHT_ARROW
 %token <number> DL DLDIR
 %token <number> EOL
 %token <number> NUM
@@ -179,6 +175,7 @@ prog: %empty {}
 
 body: setusr
 | server
+| setport
 | scp
 ;
 
@@ -198,11 +195,43 @@ scp: DL port num NAME NAME %prec higher {
   int portnum = $<number>4;
   ssh_scp_to_server(TRUE, portnum, $<string>2, $<string>5);
 }
+| LNXSRV NAME RIGHT_ARROW NAME {
+  ssh_scp_to_local(TRUE, port, $<string>2, $<string>4);
+}
+| LNXSRV NAME LEFT_ARROW NAME {
+  ssh_scp_to_server(TRUE, port, $<string>4, $<string>2);
+}
+| NAME LEFT_ARROW LNXSRV NAME {
+  ssh_scp_to_local(TRUE, port, $<string>4, $<string>1);
+}
+| NAME RIGHT_ARROW LNXSRV NAME {
+  ssh_scp_to_server(TRUE, port, $<string>1, $<string>4);
+}
 ;
 
 
-server: port num %prec lower {
+
+server: LOGIN {
+  ssh_login(port);
+}
+| login num %prec lower {
   ssh_login($<number>2);
+}
+;
+login: LOGIN
+;
+
+setport: port num %prec lower {
+  /*Truncate only when we reset the new name*/
+  ftruncate(port_fd, 0);
+  /*Set fd to the start of file*/
+  lseek(port_fd, 0, SEEK_SET);
+  port = $<number>2;
+  char* chr = (char*) malloc(sizeof(char) * 2);
+  chr[0] = port + '\0';
+  chr[1] = '\0';
+  write(port_fd, chr, strlen(chr));
+  free(chr);
 }
 ;
 port: PORT
@@ -214,12 +243,12 @@ num: NUM
 
 setusr: usr name {
   /*Truncate only when we reset the new name*/
-  ftruncate(fd, 0);
+  ftruncate(usr_fd, 0);
   /*Set fd to the start of file*/
-  lseek(fd, 0, SEEK_SET);
+  lseek(usr_fd, 0, SEEK_SET);
   memset(user, 0, BUF_SIZE);
   strcat(user, $<string>2);
-  write(fd, user, strlen(user));
+  write(usr_fd, user, strlen(user));
 }
 ;
 usr: USR
@@ -227,22 +256,25 @@ usr: USR
 name: NAME
 ;
 
-/*
-csrright: CURSOR_RIGHT %prec higher {printf("rec");}
-;
-csrleft: CURSOR_LEFT %prec higher
-;
-*/
-
 %%
 
 int main() {
   memset(user, 0, BUF_SIZE);
 
-  fd = open(".seas_settings", O_RDWR | O_CREAT, S_IRWXU);
+  usr_fd = open(".seas_usr", O_RDWR | O_CREAT, S_IRWXU);
+  port_fd = open(".seas_port", O_RDWR | O_CREAT, S_IRWXU);
   run_fd = open(".seas_ssh", O_CREAT | O_TRUNC | O_RDWR, S_IRWXU);
 
-  read(fd, user, BUF_SIZE-1);
+
+  if (read(usr_fd, user, BUF_SIZE-1) <= 0) {
+    sprintf(user, "%s", "set_usr_name_please");
+  }
+  char* port_temp[BUF_SIZE];
+  if (read(port_fd, port_temp, BUF_SIZE-1) <= 0) {
+    port = 1;
+  } else {
+    port = atoi((const char*) port_temp);
+  }
 
   printf(">> SEASnet shortcut v0.1 <<\n> ");
 

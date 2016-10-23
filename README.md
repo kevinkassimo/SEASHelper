@@ -1,50 +1,83 @@
 # SEASnet Linux Server Login Helper
 
-### Build
+## Build
 type `make` in terminal to build.
 This requires flex and bison. If you want to build yourself, run `make required`. __ELSE__ just directly use the "seas" file included in this repository
 
 To allow `seas` as alias for this helper, type `make mark` to record path in ~/.bash_profile
 
-### Run
+## Run
 type
 `./seas`  
 if shortcut is set using `make mark`, you can type  
 `seas`
 
-### Usage
+## Usage
 
+### Set username for common login
 ```
-usr *username*
-$u *username*
+user *username*
+`u *username*
 ```
-set username for common login
 
+### Set common port (for future login)
 ```
 port *portnum*
-$p *portnum*
+`p *portnum*
 ```
-log into specified port
+
+### Login to port
+```
+login *portnum*
+log *portnum*
+`l *portnum*
+```
+
+### Login to saved port
+```
+login
+log
+`l
+```
+
+### SIMPLIFIED download and upload
+__WARNING: no port is specified, since it is usually not required (all ports yields the same files)__
+```
+//download to local
+@ *server_path_without_lnxsrv_header* => *local_path*
+//or
+*local_path* <= @ *server_path_without_lnxsrv_header*
+//@ is replaceable with "server" or "srv"
+
+//upload to server
+@ *server_path* <= *local_path*
+//or
+*local_path* => @ *server_path_without_lnxsrv_header*
+//@ is replaceable with "server" or "srv"
 
 ```
-dfile port *portnum* *path_1* *path_2*
-$f $p *portnum* *path_1* *path_2*
-$f $p *portnum* *path_1* => *path_2*
+
+
+### Original download and upload
+```
+fcp port *portnum* *path_1* *path_2*
+`f `p *portnum* *path_1* *path_2*
+`f `p *portnum* *path_1* => *path_2*
 ```
 download regular file from path_1 in given port to path_2. e.g.
 ```
-dfile port 1 ~/mydir/myfile.txt => . //notice that => is optional
+fcp port 1 ~/mydir/myfile.txt => . //notice that => is optional
 ```
 
 ```
-dfile *path_1* port *portnum* *path_2*
-$f *path_1* $p *portnum* *path_2*
+fcp *path_1* port *portnum* *path_2*
+`f *path_1* $p *portnum* *path_2*
 ```
 upload regular file from path_1 to path_2 in the given port
 
 ```
-ddir ... //(similar rules as above)
-$d ...
+dcp ... //(similar rules as above)
+`d ...
 ```
 manage directories similar to above
 
@@ -53,7 +86,7 @@ exit
 ```
 exit program
 
-### Example
+## Example
 ```
 $ ./seas
 >> SEASnet shortcut v0.1 <<
@@ -61,9 +94,11 @@ $ ./seas
 > port 1
 > //type password
 > //...
-> dfile port 9 ~/mydir/myfile.txt .
+> @ ~/mydir1/myfile2.txt => localdir
 > //type password
-> $d mydir $p 1 ~/mydir_on_lnxsrv
+> fcp port 9 ~/mydir/myfile.txt .
+> //type password
+> `d dcp `p 1 ~/mydir_on_lnxsrv
 > //type password
 > exit
 ```
