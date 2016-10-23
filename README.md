@@ -62,11 +62,10 @@ __WARNING: no port is specified, since it is usually not required (all ports yie
 ```
 fcp port *portnum* *path_1* *path_2*
 `f `p *portnum* *path_1* *path_2*
-`f `p *portnum* *path_1* => *path_2*
 ```
 download regular file from path_1 in given port to path_2. e.g.
 ```
-fcp port 1 ~/mydir/myfile.txt => . //notice that => is optional
+fcp port 1 ~/mydir/myfile.txt .
 ```
 
 ```
