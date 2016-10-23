@@ -81,10 +81,24 @@ dcp ... //(similar rules as above)
 ```
 manage directories similar to above
 
+### Getting help
+```
+help
+//or
+`h
+```
+
+### Visit Github repository
+```
+repo
+//or
+`r
+```
+
+### Exit program
 ```
 exit
 ```
-exit program
 
 ## Example
 ```
