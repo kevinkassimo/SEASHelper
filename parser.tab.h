@@ -45,26 +45,25 @@ extern int yydebug;
 # define YYTOKENTYPE
   enum yytokentype
   {
-    CURSOR_LEFT = 258,
-    CURSOR_RIGHT = 259,
-    USR = 260,
-    HELP = 261,
-    REPO = 262,
-    PORT = 263,
-    LOGIN = 264,
-    LNXSRV = 265,
-    LEFT_ARROW = 266,
-    RIGHT_ARROW = 267,
-    DL = 268,
-    DLDIR = 269,
-    EOL = 270,
-    NUM = 271,
-    EXIT = 272,
-    NAME = 273,
-    lowest = 274,
-    lower = 275,
-    higher = 276,
-    cursor = 277
+    USR = 258,
+    HELP = 259,
+    REPO = 260,
+    PORT = 261,
+    LOGIN = 262,
+    STAT = 263,
+    LNXSRV = 264,
+    LEFT_ARROW = 265,
+    RIGHT_ARROW = 266,
+    DL = 267,
+    DLDIR = 268,
+    EOL = 269,
+    NUM = 270,
+    EXIT = 271,
+    NAME = 272,
+    lowest = 273,
+    lower = 274,
+    higher = 275,
+    cursor = 276
   };
 #endif
 
@@ -78,7 +77,7 @@ union YYSTYPE
   int number;
   char* string;
 
-#line 82 "parser.tab.h" /* yacc.c:1915  */
+#line 81 "parser.tab.h" /* yacc.c:1915  */
 };
 
 typedef union YYSTYPE YYSTYPE;

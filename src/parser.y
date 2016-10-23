@@ -155,10 +155,9 @@
   char* string;
 }
 
-%token <number> CURSOR_LEFT CURSOR_RIGHT
 %token <number> USR HELP REPO
-%token <number> PORT
-%token <number> LOGIN
+%token <number> PORT LOGIN
+%token <number> STAT
 %token <number> LNXSRV
 %token <number> LEFT_ARROW RIGHT_ARROW
 %token <number> DL DLDIR
@@ -195,6 +194,7 @@ body: setusr
 | server
 | setport
 | scp
+| stat
 ;
 
 scp: DL port num NAME NAME %prec higher {
@@ -246,7 +246,7 @@ setport: port num %prec lower {
   lseek(port_fd, 0, SEEK_SET);
   port = $<number>2;
   char* chr = (char*) malloc(sizeof(char) * 2);
-  chr[0] = port + '\0';
+  chr[0] = port + '0';
   chr[1] = '\0';
   write(port_fd, chr, strlen(chr));
   free(chr);
@@ -272,6 +272,12 @@ setusr: usr name {
 usr: USR
 ;
 name: NAME
+;
+
+stat: STAT {
+  printf("* current username: %s\n", user);
+  printf("* current default port: %d\n", port);
+}
 ;
 
 %%

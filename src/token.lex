@@ -6,7 +6,6 @@
   #include <unistd.h>
   #include <fcntl.h>
   #include <getopt.h>
-  #include <ncurses.h>
 
   #include "parser.tab.h"
 #ifndef BUF_SIZE
@@ -23,6 +22,7 @@
 `e {return EXIT;}
 `h {return HELP;}
 `r {return REPO;}
+`s {return STAT;}
 
 user {return USR;}
 "user:" {return USR;}
@@ -42,6 +42,7 @@ server {return LNXSRV;}
 
 help {return HELP;}
 repo {return REPO;}
+stat {return STAT;}
 
 [1-9] {
   yylval.number = atoi(yytext);

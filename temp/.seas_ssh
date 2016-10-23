@@ -1,2 +1,0 @@
-#!/bin/bash
-scp -r kun@lnxsrv01.seas.ucla.edu:~/cs111/test/1.txt .
