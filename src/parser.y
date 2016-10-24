@@ -329,6 +329,7 @@ int main(int argc, char *argv[]) {
 
   memset(user, 0, BUF_SIZE);
 
+  system("if [ -d mkdir ]; then :; else mkdir temp; fi");
   usr_fd = open("temp/.seas_usr", O_RDWR | O_CREAT, S_IRWXU);
   port_fd = open("temp/.seas_port", O_RDWR | O_CREAT, S_IRWXU);
   run_fd = open("temp/.seas_ssh", O_CREAT | O_TRUNC | O_RDWR, S_IRWXU);
