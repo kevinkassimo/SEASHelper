@@ -8,8 +8,7 @@ seas:
 build:
 	@ flex src/token.lex
 	@ bison -d src/parser.y
-#	@ gcc -o seas parser.tab.c lex.yy.c -ll -ledit -lmcrypt
-	@ gcc -o seas parser.tab.c lex.yy.c -ll -ledit -I/usr/local/Cellar/mcrypt/2.6.8/include -L/usr/local/Cellar/mcrypt/2.6.8/lib -lmcrypt
+	@ gcc -o seas parser.tab.c lex.yy.c -ll -ledit -lmcrypt
 	@ if [ -d "temp" ]; then :; else mkdir temp; fi
 required:
 	@ brew install flex

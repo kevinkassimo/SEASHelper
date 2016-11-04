@@ -17,32 +17,41 @@
 `u {return USR;}
 `l {return LOGIN;}
 `p {return PORT;}
-`f {return DL;}
-`d {return DLDIR;}
 `e {return EXIT;}
 `h {return HELP;}
 `r {return REPO;}
 `s {return STAT;}
+`b {return BASH;}
+`k {return KEY;}
+`d {return DEL;}
 
 user {return USR;}
+usr {return USR;}
 "user:" {return USR;}
 port {return PORT;}
 "port:" {return PORT;}
 log {return LOGIN;}
 login {return LOGIN;}
-fcp {return DL;}
-dcp {return DLDIR;}
 exit {return EXIT;}
 
 "@" {return LNXSRV;}
 srv {return LNXSRV;}
 server {return LNXSRV;}
 "<=" {return LEFT_ARROW;}
+"<-" {return LEFT_ARROW;}
 "=>" {return RIGHT_ARROW;}
+"->" {return RIGHT_ARROW;}
+
+key {return KEY;}
+setkey {return KEY;}
+password {return KEY;}
+del {return DEL;}
+delete {return DEL;}
 
 help {return HELP;}
 repo {return REPO;}
 stat {return STAT;}
+bash {return BASH;}
 
 [1-9] {
   yylval.number = atoi(yytext);

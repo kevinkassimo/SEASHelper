@@ -13,6 +13,31 @@
   #include <stdbool.h>
   #include <histedit.h>
   #include <termios.h>
+  //#include <direct.h>
+  #include <mcrypt.h>
+  #include <sys/stat.h>
+  #include <limits.h>
+
+#ifdef __APPLE__
+  #include <libproc.h>
+#endif
+  //////////////////////////////////
+  //WARNING:
+  //This is the key to the encryption of your password:
+  #define PWD_KEY 11105231919 // <== this is the key
+  //Change this value, compile and delete the source file if you are worried about security
+  //Warning: this program gives NO guarantee security
+
+  //This is the seed of random
+  #define SEED_RANDOM 1919
+  //Changing this also ensures better security
+
+  #define SEAS_FAIL -1
+  #define SEAS_SUCC 0
+  #define BUF_SIZE 1024
+  #define SAFE_SIZE 1023
+  #define TRUE 1
+  #define FALSE 0
 
   typedef struct yy_buffer_state * YY_BUFFER_STATE;
   extern int yyparse();
@@ -24,9 +49,45 @@
     fprintf(stderr, "ERROR: %s\n", s);
   }
 
-  #define BUF_SIZE 1024
-  #define TRUE 1
-  #define FALSE 0
+  //Path of the program
+  char base_path[BUF_SIZE];
+  //Initialize the path of the program
+  int init_path() {
+    char temp[PATH_MAX];
+    memset(temp, 0, PATH_MAX);
+    memset(base_path, 0, BUF_SIZE);
+
+    int i;
+    //Apple and linux seems to be diverting at this point
+#ifdef __APPLE__
+  if (proc_pidpath (getpid(), base_path, BUF_SIZE) <= 0) {
+      perror("proc_pidpath");
+      return SEAS_FAIL;
+  }
+#elif __linux__
+    snprintf(base_path, SAFE_SIZE, "/proc/self/exe");
+    //Use readlink to retrieve the base path
+    if (readlink(temp, base_path, PATH_MAX) == -1) {
+      perror("readlink");
+      return SEAS_FAIL;
+    }
+#endif
+    for (i = strlen(base_path) - 1; i > 0; i--) {
+      if (base_path[i] == '/') {
+        base_path[i] = '\0';
+        break;
+      }
+    }
+    printf("%s\n", base_path);
+    return SEAS_SUCC;
+  }
+
+  //Create absolute path
+  void create_full_path(char* dest, char* sub_path) {
+    strncat(dest, base_path, SAFE_SIZE - strlen(dest));
+    strncat(dest, "/", SAFE_SIZE - strlen(dest));
+    strncat(dest, sub_path, SAFE_SIZE - strlen(dest));
+  }
 
   int usr_fd;
   int port_fd;
@@ -38,115 +99,133 @@
 
   int rc;
 
-  void ssh_login(int port) {
-    rc = fork();
-    if (rc == 0) {
-      char cmd[BUF_SIZE];
-      memset(cmd, 0, BUF_SIZE);
-      sprintf(cmd, "ssh %s@lnxsrv0%d.seas.ucla.edu", user, port);
-      char* run_type = strdup("#!/bin/bash\n");
-
-      ftruncate(run_fd, 0);
-      //Fix wrong fd position bug
-      lseek(run_fd, 0, SEEK_SET);
-
-      write(run_fd, run_type, strlen(run_type));
-      write(run_fd, cmd, strlen(cmd));
-
-      execl("./temp/.seas_ssh", NULL);
-
-      perror("Failed");
-      exit(EXIT_FAILURE);
-    } else {
-      int status;
-      waitpid(rc, &status, 0);
-    }
+  void lite_login(int port) {
+    char cmd[BUF_SIZE];
+    memset(cmd, 0, BUF_SIZE);
+    snprintf(cmd, SAFE_SIZE, "ssh %s@lnxsrv0%d.seas.ucla.edu", user, port);
+    system(cmd);
   }
 
-  void ssh_scp_to_local(int is_folder, int port, char* from, char* to) {
-    rc = fork();
-    if (rc == 0) {
-      char _from[BUF_SIZE];
-      memset(_from, 0, BUF_SIZE);
-      sprintf(_from, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, port, from);
-
-      if (is_folder) {
-        ftruncate(run_fd, 0);
-        //Fix wrong fd position bug
-        lseek(run_fd, 0, SEEK_SET);
-        char cmd[BUF_SIZE];
-        sprintf(cmd, "scp -r %s %s\n", _from, to);
-        char* run_type = strdup("#!/bin/bash\n");
-        /*lseek(run_fd, 0, SEEK_SET);*/
-        write(run_fd, run_type, strlen(run_type));
-        write(run_fd, cmd, strlen(cmd));
-        execl("./temp/.seas_ssh", NULL);
-
-        perror("Failed");
-        exit(EXIT_FAILURE);
-      } else {
-        ftruncate(run_fd, 0);
-        //Fix wrong fd position bug
-        lseek(run_fd, 0, SEEK_SET);
-        char cmd[BUF_SIZE];
-        sprintf(cmd, "scp %s %s", _from, to);
-        char* run_type = strdup("#!/bin/bash\n");
-        /*lseek(run_fd, 0, SEEK_SET);*/
-        write(run_fd, run_type, strlen(run_type));
-        write(run_fd, cmd, strlen(cmd));
-        execl("./temp/.seas_ssh", NULL);
-
-        perror("Failed");
-        exit(EXIT_FAILURE);
-      }
-    } else {
-      int status;
-      waitpid(rc, &status, 0);
-    }
+  void lite_scp_to_local(int port, char* from, char* to) {
+    char cmd[BUF_SIZE];
+    memset(cmd, 0, BUF_SIZE);
+    snprintf(cmd, SAFE_SIZE, "scp -r %s@lnxsrv0%d.seas.ucla.edu:%s %s", user, port, from, to);
+    system(cmd);
   }
 
-  void ssh_scp_to_server(int is_folder, int port, char* from, char* to) {
-    rc = fork();
-    if (rc == 0) {
-      char _to[BUF_SIZE];
-      memset(_to, 0, BUF_SIZE);
-      sprintf(_to, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, port, to);
+  void lite_scp_to_server(int port, char* from, char* to) {
+    char cmd[BUF_SIZE];
+    memset(cmd, 0, BUF_SIZE);
+    snprintf(cmd, SAFE_SIZE, "scp -r %s %s@lnxsrv0%d.seas.ucla.edu:%s", from, user, port, to);
+    system(cmd);
+  }
 
-      if (is_folder) {
-        ftruncate(run_fd, 0);
-        //Fix wrong fd position bug
-        lseek(run_fd, 0, SEEK_SET);
-
-        char cmd[BUF_SIZE];
-        sprintf(cmd, "scp -r %s %s", from, _to);
-        char* run_type = strdup("#!/bin/bash\n");
-        /*lseek(run_fd, 0, SEEK_SET);*/
-        write(run_fd, run_type, strlen(run_type));
-        write(run_fd, cmd, strlen(cmd));
-        execl("./temp/.seas_ssh", NULL);
-
-        perror("Failed");
-        exit(EXIT_FAILURE);
-      } else {
-        ftruncate(run_fd, 0);
-        //Fix wrong fd position bug
-        lseek(run_fd, 0, SEEK_SET);
-
-        char cmd[BUF_SIZE];
-        sprintf(cmd, "scp %s %s", from, _to);
-        char* run_type = strdup("#!/bin/bash\n");
-        /*lseek(run_fd, 0, SEEK_SET);*/
-        write(run_fd, run_type, strlen(run_type));
-        write(run_fd, cmd, strlen(cmd));
-        execl("./temp/.seas_ssh", NULL);
-
-        perror("Failed");
-        exit(EXIT_FAILURE);
+  //char cwd[BUF_SIZE];
+  char pwd[BUF_SIZE];
+  char keystr[BUF_SIZE];
+  MCRYPT td;
+  /*
+  int init_cwd() {
+    memset(cwd, 0, BUF_SIZE);
+    if (getcwd(cwd, BUF_SIZE-1) != NULL) {
+       return SEAS_SUCC;
+     } else {
+       perror("working directory");
+       return SEAS_FAIL;
+     }
+  }
+  */
+  int init_keystr() {
+    memset(keystr, 0, BUF_SIZE);
+    long digits = PWD_KEY;
+    int one_digit;
+    int count = 0;
+    do {
+      one_digit = (int) (digits % 10L);
+      digits /= 10L;
+      count++;
+      if (count >= BUF_SIZE-1) {
+        break;
       }
-    } else {
-      int status;
-      waitpid(rc, &status, 0);
+      keystr[count] = '0' + one_digit;
+    } while (digits > 9);
+    keystr[++count] = '0' + one_digit;
+    //This will always succeed
+    return SEAS_SUCC;
+  }
+  int init_mcrypt() {
+    init_keystr();
+    char *IV;
+    int keysize = 16;
+    td = mcrypt_module_open("twofish", NULL, "cfb", NULL);
+    if (td == MCRYPT_FAILED) {
+      return SEAS_FAIL;
     }
+    IV = malloc(mcrypt_enc_get_iv_size(td));
+    int i;
+    srand(SEED_RANDOM);
+    for (i = 0; i < mcrypt_enc_get_iv_size(td); i++) {
+      IV[i] = rand();
+    }
+    i = mcrypt_generic_init(td, keystr, keysize, IV);
+    if (i < 0) {
+      mcrypt_perror(i);
+      return SEAS_FAIL;
+    }
+    return SEAS_SUCC;
+  }
+  int init_pwd() {
+    system("if [ -d data ]; then :; else mkdir data; fi");
+
+    int pwd_fd = open("data/.seas_pwd", O_CREAT | O_RDWR);
+    int ret = 0;
+    if ((ret = read(pwd_fd, pwd, BUF_SIZE-1)) < 0) {
+      perror("read");
+      return SEAS_FAIL;
+    }
+    if (ret != 0) {
+      mdecrypt_generic(td, pwd, ret);
+    }
+    return SEAS_SUCC;
+  }
+  int init() {
+    int ret = init_path() | init_cwd() | init_mcrypt() | init_pwd();
+    if (ret != SEAS_SUCC) {
+      fprintf(stderr, "ERROR: initialization failed\n");
+    }
+    return ret;
+  }
+  void ending() {
+    mcrypt_generic_end(td);
+  }
+
+  void save_pwd(char* new_pwd) {
+    if (strlen(new_pwd) <= 0) {
+      fprintf(stderr, "ERROR: Invalid password\n");
+      return;
+    }
+    memset(pwd, 0, BUF_SIZE);
+    strcat(pwd, new_pwd);
+    int pwd_fd = open("data/.seas_pwd", O_TRUNC | O_RDWR);
+    if (pwd_fd < 0) {
+      fprintf(stderr, "ERROR: Password saving failed\n");
+      return;
+    }
+    char* encoded = strdup(pwd);
+    int len = strlen(encoded);
+    mcrypt_generic(td, encoded, len);
+    write(pwd_fd, encoded, len);
+    fprintf(stdout, "* Password saved!\n");
+  }
+  void del_pwd() {
+    if (strlen(pwd) <= 0) return;
+
+    memset(pwd, 0, BUF_SIZE);
+    if (truncate("data/.seas_pwd", 0) < 0) {
+      fprintf(stderr, "ERROR: clear password file error\n");
+      return;
+    }
+    fprintf(stdout, "* Password deleted\n");
   }
 %}
 
@@ -159,11 +238,14 @@
 %token <number> PORT LOGIN
 %token <number> STAT
 %token <number> LNXSRV
+%token <number> DEL BASH
+%token <number> AUTO
+
 %token <number> LEFT_ARROW RIGHT_ARROW
-%token <number> DL DLDIR
 %token <number> EOL
 %token <number> NUM
 %token <number> EXIT
+%token <number> KEY
 
 %token <string> NAME
 
@@ -195,47 +277,35 @@ body: setusr
 | setport
 | scp
 | stat
+| bash
+| key
+| del
 ;
 
-scp: DL port num NAME NAME %prec higher {
-  int portnum = $<number>3;
-  ssh_scp_to_local(FALSE, portnum, $<string>4, $<string>5);
-}
-| DL NAME port num NAME %prec higher {
-  int portnum = $<number>4;
-  ssh_scp_to_server(FALSE, portnum, $<string>2, $<string>5);
-}
-| DLDIR port num NAME NAME %prec higher {
-  int portnum = $<number>3;
-  ssh_scp_to_local(TRUE, portnum, $<string>4, $<string>5);
-}
-| DLDIR NAME port num NAME %prec higher {
-  int portnum = $<number>4;
-  ssh_scp_to_server(TRUE, portnum, $<string>2, $<string>5);
-}
-| LNXSRV NAME RIGHT_ARROW NAME {
-  ssh_scp_to_local(TRUE, port, $<string>2, $<string>4);
+scp: LNXSRV NAME RIGHT_ARROW NAME {
+  lite_scp_to_local(port, $<string>2, $<string>4);
 }
 | LNXSRV NAME LEFT_ARROW NAME {
-  ssh_scp_to_server(TRUE, port, $<string>4, $<string>2);
+  lite_scp_to_server(port, $<string>4, $<string>2);
 }
 | NAME LEFT_ARROW LNXSRV NAME {
-  ssh_scp_to_local(TRUE, port, $<string>4, $<string>1);
+  lite_scp_to_local(port, $<string>4, $<string>1);
 }
 | NAME RIGHT_ARROW LNXSRV NAME {
-  ssh_scp_to_server(TRUE, port, $<string>1, $<string>4);
+  lite_scp_to_server(port, $<string>1, $<string>4);
 }
 ;
 
 
 
 server: LOGIN {
-  ssh_login(port);
+  lite_login(port);
 }
 | login num %prec lower {
-  ssh_login($<number>2);
+  lite_login($<number>2);
 }
 ;
+
 login: LOGIN
 ;
 
@@ -280,6 +350,37 @@ stat: STAT {
 }
 ;
 
+bash: BASH {
+  rc = fork();
+  if (rc == 0) {
+    execl("/bin/bash", "/bin/bash", NULL);
+    perror("exec bash");
+  } else {
+    wait(NULL);
+  }
+}
+;
+
+key: KEY %prec lower {
+  write(STDOUT_FILENO, "Enter password: ", BUF_SIZE);
+  struct termios tattr;
+  tcgetattr(STDIN_FILENO, &tattr);
+  tattr.c_lflag &= ~ECHO;
+  char buf[BUF_SIZE];
+  memset(buf, 0, BUF_SIZE);
+  if (read(STDIN_FILENO, buf, BUF_SIZE-1) <= 0) {
+    write(STDERR_FILENO, "ERROR: Invalid password\n", BUF_SIZE);
+  } else {
+    save_pwd(buf);
+  }
+  tattr.c_lflag |= ECHO;
+}
+;
+
+del: DEL KEY %prec higher {
+  del_pwd();
+}
+;
 %%
 
 #define HIST_SIZE 800
@@ -291,6 +392,7 @@ const char* input;
 char* prompt(EditLine *e) {
 	return "> ";
 }
+
 int read_count;
 int p_fd;
 
@@ -310,6 +412,10 @@ void print_welcome(void) {
 
 int main(int argc, char *argv[]) {
 	atexit(ATEXIT_handler);
+
+  if (init() != SEAS_SUCC) {
+    exit(EXIT_FAILURE);
+  }
 
 	// This holds all the state for our line editor
 	_el = el_init(argv[0], stdin, stdout, stderr);
