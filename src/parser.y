@@ -381,21 +381,49 @@
 
   struct termios tattr;
 
+  char* bash_like_str(char* str) {
+    char* new_str = (char*) malloc(BUF_SIZE);
+    memset(new_str, 0, BUF_SIZE);
+    int i = 0;
+    int len = strlen(str);
+    int index = 0;
+    for (i = 0; i < len; i++) {
+      switch (str[i]) {
+        case '$':
+        case '&':
+        case ' ':
+          new_str[index] = '\\';
+          index++;
+          //fall through
+        default:
+          new_str[index] = str[i];
+          index++;
+          break;
+      }
+    }
+    return new_str;
+  }
+
+
   void auto_expect(int is_scp, char* addr_1, char* addr_2) {
+    fprintf(stderr, "%s\n", addr_1);
+
     int rc = fork();
     if (rc == 0) {
       char expect_path[BUF_SIZE];
       memset(expect_path, 0, BUF_SIZE);
-      strncpy(expect_path, base_path, SAFE_SIZE);
+      strncat(expect_path, base_path, SAFE_SIZE - strlen(expect_path));
       strncat(expect_path, "/seas_expect", SAFE_SIZE - strlen(expect_path));
       //fprintf(stderr, "%s", expect_path);
-      printf("%s", pwd);
       if (is_scp == TRUE) {
-        execl(expect_path, expect_path, "1", pwd, addr_1, addr_2);
+        //fprintf(stderr, "is_scp\n");
+        execlp(expect_path, "---", "1", pwd, addr_1, addr_2, NULL);
       } else {
-        execl(expect_path, expect_path, "0", pwd, addr_1, NULL);
+        //fprintf(stderr, "is_ssh\n");
+        execlp(expect_path, "---", "0", pwd, addr_1, NULL);
       }
       perror("fork");
+      //fprintf(stderr, "%s\n", expect_path);
       exit(EXIT_FAILURE);
     } else {
       wait(NULL);
@@ -469,6 +497,7 @@ scp: LNXSRV NAME RIGHT_ARROW NAME {
   char addr[BUF_SIZE];
   memset(addr, 0, BUF_SIZE);
   snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, port, $<string>3);
+  fprintf(stderr, "mark: %s", $<string>5);
   auto_expect(TRUE, addr, $<string>5);
 }
 | AUTO LNXSRV NAME LEFT_ARROW NAME {

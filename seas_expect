@@ -1,18 +1,24 @@
 #!/usr/bin/expect
 
 set timeout 100
-log_user 1
+log_user 0
 
 set is_scp [lindex $argv 0]
 set pwd [lindex $argv 1]
 set addr_1 [lindex $argv 2]
 set addr_2 [lindex $argv 3]
 
-if { $is_scp == 0 } {
+if { $is_scp == "0" } {
   spawn ssh $addr_1
-} else {
+} elseif { $is_scp == "1" } {
   spawn scp -r $addr_1 $addr_2
+} else {
+  log_user 1
+  send_user "ERROR: Expect script bugged";
+  exit
 }
+
+log_user 1
 
 while (1) {
  expect {
@@ -36,7 +42,7 @@ while (1) {
   }
   eof {
    log_user 1
-   send_user "* End of File received\n"; exit 1;
+   send_user "* Session complete or broken\n"; exit 1;
   }
  }
 }

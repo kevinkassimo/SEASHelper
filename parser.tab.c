@@ -446,21 +446,54 @@
 
   struct termios tattr;
 
+  char* bash_like_str(char* str) {
+    char* new_str = (char*) malloc(BUF_SIZE);
+    memset(new_str, 0, BUF_SIZE);
+    int i = 0;
+    int len = strlen(str);
+    int index = 0;
+    for (i = 0; i < len; i++) {
+      switch (str[i]) {
+        case '$':
+        case '&':
+        case ' ':
+          new_str[index] = '\\';
+          index++;
+          //fall through
+        default:
+          new_str[index] = str[i];
+          index++;
+          break;
+      }
+    }
+    return new_str;
+  }
+
+
   void auto_expect(int is_scp, char* addr_1, char* addr_2) {
+    fprintf(stderr, "%s\n", addr_1);
+    /*
+    if (addr_2 != NULL) {
+      fprintf(stderr, "%s\n", addr_2);
+    }
+    */
+
     int rc = fork();
     if (rc == 0) {
       char expect_path[BUF_SIZE];
       memset(expect_path, 0, BUF_SIZE);
-      strncpy(expect_path, base_path, SAFE_SIZE);
+      strncat(expect_path, base_path, SAFE_SIZE - strlen(expect_path));
       strncat(expect_path, "/seas_expect", SAFE_SIZE - strlen(expect_path));
       //fprintf(stderr, "%s", expect_path);
-      printf("%s", pwd);
       if (is_scp == TRUE) {
-        execl(expect_path, expect_path, "1", pwd, addr_1, addr_2);
+        //fprintf(stderr, "is_scp\n");
+        execlp(expect_path, "---", "1", pwd, addr_1, addr_2, NULL);
       } else {
-        execl(expect_path, expect_path, "0", pwd, addr_1, NULL);
+        //fprintf(stderr, "is_ssh\n");
+        execlp(expect_path, "---", "0", pwd, addr_1, NULL);
       }
       perror("fork");
+      //fprintf(stderr, "%s\n", expect_path);
       exit(EXIT_FAILURE);
     } else {
       wait(NULL);
@@ -468,7 +501,7 @@
     }
   }
 
-#line 472 "parser.tab.c" /* yacc.c:339  */
+#line 505 "parser.tab.c" /* yacc.c:339  */
 
 # ifndef YY_NULLPTR
 #  if defined __cplusplus && 201103L <= __cplusplus
@@ -532,12 +565,12 @@ extern int yydebug;
 
 union YYSTYPE
 {
-#line 407 "src/parser.y" /* yacc.c:355  */
+#line 440 "src/parser.y" /* yacc.c:355  */
 
   int number;
   char* string;
 
-#line 541 "parser.tab.c" /* yacc.c:355  */
+#line 574 "parser.tab.c" /* yacc.c:355  */
 };
 
 typedef union YYSTYPE YYSTYPE;
@@ -554,7 +587,7 @@ int yyparse (void);
 
 /* Copy the second part of user declarations.  */
 
-#line 558 "parser.tab.c" /* yacc.c:358  */
+#line 591 "parser.tab.c" /* yacc.c:358  */
 
 #ifdef short
 # undef short
@@ -853,10 +886,10 @@ static const yytype_uint8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint16 yyrline[] =
 {
-       0,   434,   434,   435,   436,   437,   440,   443,   452,   453,
-     454,   455,   456,   457,   458,   459,   462,   465,   468,   474,
-     480,   483,   486,   492,   502,   505,   508,   514,   522,   525,
-     539,   541,   544,   557,   559,   562,   572,   583,   603
+       0,   467,   467,   468,   469,   470,   473,   476,   485,   486,
+     487,   488,   489,   490,   491,   492,   495,   498,   501,   508,
+     514,   517,   520,   526,   536,   539,   542,   548,   556,   559,
+     573,   575,   578,   591,   593,   596,   606,   617,   637
 };
 #endif
 
@@ -1663,41 +1696,41 @@ yyreduce:
   switch (yyn)
     {
         case 2:
-#line 434 "src/parser.y" /* yacc.c:1661  */
+#line 467 "src/parser.y" /* yacc.c:1661  */
     {}
-#line 1669 "parser.tab.c" /* yacc.c:1661  */
+#line 1702 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 3:
-#line 435 "src/parser.y" /* yacc.c:1661  */
+#line 468 "src/parser.y" /* yacc.c:1661  */
     {/*printf("> ");*/}
-#line 1675 "parser.tab.c" /* yacc.c:1661  */
+#line 1708 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 4:
-#line 436 "src/parser.y" /* yacc.c:1661  */
+#line 469 "src/parser.y" /* yacc.c:1661  */
     {/*printf("> ");*/}
-#line 1681 "parser.tab.c" /* yacc.c:1661  */
+#line 1714 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 5:
-#line 437 "src/parser.y" /* yacc.c:1661  */
+#line 470 "src/parser.y" /* yacc.c:1661  */
     {print_success("Goodbye!\n");
 exit(EXIT_SUCCESS);
 }
-#line 1689 "parser.tab.c" /* yacc.c:1661  */
+#line 1722 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 6:
-#line 440 "src/parser.y" /* yacc.c:1661  */
+#line 473 "src/parser.y" /* yacc.c:1661  */
     {
   printf("* Usage *\n\tuser *username* : set default username\n\tport *portnum* : set default server number\n\tlogin *optional_portnum* : login to server\n\t@ *server_path* => *local_path\n\t*local_path* => @ *server_path* : download and upload files/directory\n\texit : exit program\n");
 }
-#line 1697 "parser.tab.c" /* yacc.c:1661  */
+#line 1730 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 7:
-#line 443 "src/parser.y" /* yacc.c:1661  */
+#line 476 "src/parser.y" /* yacc.c:1661  */
     {
 #ifdef __APPLE__
 system("open https://github.com/kevinkassimo/SEASHelper");
@@ -1705,125 +1738,126 @@ system("open https://github.com/kevinkassimo/SEASHelper");
 system("xdg-open https://github.com/kevinkassimo/SEASHelper");
 #endif
 }
-#line 1709 "parser.tab.c" /* yacc.c:1661  */
+#line 1742 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 16:
-#line 462 "src/parser.y" /* yacc.c:1661  */
+#line 495 "src/parser.y" /* yacc.c:1661  */
     {
   lite_scp_to_local(port, (yyvsp[-2].string), (yyvsp[0].string));
 }
-#line 1717 "parser.tab.c" /* yacc.c:1661  */
+#line 1750 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 17:
-#line 465 "src/parser.y" /* yacc.c:1661  */
+#line 498 "src/parser.y" /* yacc.c:1661  */
     {
   lite_scp_to_server(port, (yyvsp[0].string), (yyvsp[-2].string));
 }
-#line 1725 "parser.tab.c" /* yacc.c:1661  */
+#line 1758 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 18:
-#line 468 "src/parser.y" /* yacc.c:1661  */
+#line 501 "src/parser.y" /* yacc.c:1661  */
     {
   char addr[BUF_SIZE];
   memset(addr, 0, BUF_SIZE);
   snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, port, (yyvsp[-2].string));
+  fprintf(stderr, "mark: %s", (yyvsp[0].string));
   auto_expect(TRUE, addr, (yyvsp[0].string));
 }
-#line 1736 "parser.tab.c" /* yacc.c:1661  */
+#line 1770 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 19:
-#line 474 "src/parser.y" /* yacc.c:1661  */
+#line 508 "src/parser.y" /* yacc.c:1661  */
     {
   char addr[BUF_SIZE];
   memset(addr, 0, BUF_SIZE);
   snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, port, (yyvsp[-2].string));
   auto_expect(TRUE, (yyvsp[0].string), addr);
 }
-#line 1747 "parser.tab.c" /* yacc.c:1661  */
+#line 1781 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 20:
-#line 480 "src/parser.y" /* yacc.c:1661  */
+#line 514 "src/parser.y" /* yacc.c:1661  */
     {
   lite_scp_to_local(port, (yyvsp[0].string), (yyvsp[-3].string));
 }
-#line 1755 "parser.tab.c" /* yacc.c:1661  */
+#line 1789 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 21:
-#line 483 "src/parser.y" /* yacc.c:1661  */
+#line 517 "src/parser.y" /* yacc.c:1661  */
     {
   lite_scp_to_server(port, (yyvsp[-3].string), (yyvsp[0].string));
 }
-#line 1763 "parser.tab.c" /* yacc.c:1661  */
+#line 1797 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 22:
-#line 486 "src/parser.y" /* yacc.c:1661  */
+#line 520 "src/parser.y" /* yacc.c:1661  */
     {
   char addr[BUF_SIZE];
   memset(addr, 0, BUF_SIZE);
   snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, port, (yyvsp[0].string));
   auto_expect(TRUE, addr, (yyvsp[-3].string));
 }
-#line 1774 "parser.tab.c" /* yacc.c:1661  */
+#line 1808 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 23:
-#line 492 "src/parser.y" /* yacc.c:1661  */
+#line 526 "src/parser.y" /* yacc.c:1661  */
     {
   char addr[BUF_SIZE];
   memset(addr, 0, BUF_SIZE);
   snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, port, (yyvsp[0].string));
   auto_expect(TRUE, (yyvsp[-3].string), addr);
 }
-#line 1785 "parser.tab.c" /* yacc.c:1661  */
+#line 1819 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 24:
-#line 502 "src/parser.y" /* yacc.c:1661  */
+#line 536 "src/parser.y" /* yacc.c:1661  */
     {
   lite_login(port);
 }
-#line 1793 "parser.tab.c" /* yacc.c:1661  */
+#line 1827 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 25:
-#line 505 "src/parser.y" /* yacc.c:1661  */
+#line 539 "src/parser.y" /* yacc.c:1661  */
     {
   lite_login((yyvsp[0].number));
 }
-#line 1801 "parser.tab.c" /* yacc.c:1661  */
+#line 1835 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 26:
-#line 508 "src/parser.y" /* yacc.c:1661  */
+#line 542 "src/parser.y" /* yacc.c:1661  */
     {
   char addr[BUF_SIZE];
   memset(addr, 0, BUF_SIZE);
   snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu", user, port);
   auto_expect(FALSE, addr, NULL);
 }
-#line 1812 "parser.tab.c" /* yacc.c:1661  */
+#line 1846 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 27:
-#line 514 "src/parser.y" /* yacc.c:1661  */
+#line 548 "src/parser.y" /* yacc.c:1661  */
     {
   char addr[BUF_SIZE];
   memset(addr, 0, BUF_SIZE);
   snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu", user, port);
   auto_expect(FALSE, addr, NULL);
 }
-#line 1823 "parser.tab.c" /* yacc.c:1661  */
+#line 1857 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 29:
-#line 525 "src/parser.y" /* yacc.c:1661  */
+#line 559 "src/parser.y" /* yacc.c:1661  */
     {
   /*Truncate only when we reset the new name*/
   ftruncate(port_fd, 0);
@@ -1837,11 +1871,11 @@ system("xdg-open https://github.com/kevinkassimo/SEASHelper");
   free(chr);
   printf("* Default login server has been changed into "BOLDGREEN"# %d\n"RESET, port);
 }
-#line 1841 "parser.tab.c" /* yacc.c:1661  */
+#line 1875 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 32:
-#line 544 "src/parser.y" /* yacc.c:1661  */
+#line 578 "src/parser.y" /* yacc.c:1661  */
     {
   /*Truncate only when we reset the new name*/
   ftruncate(usr_fd, 0);
@@ -1854,11 +1888,11 @@ system("xdg-open https://github.com/kevinkassimo/SEASHelper");
   }
   printf("* Username has been changed into: "BOLDGREEN"%s\n"RESET, user);
 }
-#line 1858 "parser.tab.c" /* yacc.c:1661  */
+#line 1892 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 35:
-#line 562 "src/parser.y" /* yacc.c:1661  */
+#line 596 "src/parser.y" /* yacc.c:1661  */
     {
   if (strcmp(user, "(null)") == 0) {
     printf("* current username: "BOLDRED"%s"RESET"\n", user);
@@ -1867,11 +1901,11 @@ system("xdg-open https://github.com/kevinkassimo/SEASHelper");
   }
   printf("* current default port (1~9): "BOLDGREEN"%d"RESET"\n", port);
 }
-#line 1871 "parser.tab.c" /* yacc.c:1661  */
+#line 1905 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 36:
-#line 572 "src/parser.y" /* yacc.c:1661  */
+#line 606 "src/parser.y" /* yacc.c:1661  */
     {
   rc = fork();
   if (rc == 0) {
@@ -1881,11 +1915,11 @@ system("xdg-open https://github.com/kevinkassimo/SEASHelper");
     wait(NULL);
   }
 }
-#line 1885 "parser.tab.c" /* yacc.c:1661  */
+#line 1919 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 37:
-#line 583 "src/parser.y" /* yacc.c:1661  */
+#line 617 "src/parser.y" /* yacc.c:1661  */
     {
   fprintf(stderr, "Enter password: ");
   tcgetattr(STDIN_FILENO, &tattr);
@@ -1904,19 +1938,19 @@ system("xdg-open https://github.com/kevinkassimo/SEASHelper");
   tattr.c_lflag |= ECHO;
   tcsetattr(STDIN_FILENO, TCSANOW, &tattr);
 }
-#line 1908 "parser.tab.c" /* yacc.c:1661  */
+#line 1942 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 38:
-#line 603 "src/parser.y" /* yacc.c:1661  */
+#line 637 "src/parser.y" /* yacc.c:1661  */
     {
   del_pwd();
 }
-#line 1916 "parser.tab.c" /* yacc.c:1661  */
+#line 1950 "parser.tab.c" /* yacc.c:1661  */
     break;
 
 
-#line 1920 "parser.tab.c" /* yacc.c:1661  */
+#line 1954 "parser.tab.c" /* yacc.c:1661  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -2144,7 +2178,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 607 "src/parser.y" /* yacc.c:1906  */
+#line 641 "src/parser.y" /* yacc.c:1906  */
 
 
 #define HIST_SIZE 800
