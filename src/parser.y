@@ -39,6 +39,39 @@
   #define TRUE 1
   #define FALSE 0
 
+  //VERY NICE cursor movement LOL
+  #define cursorforward(x) printf("\033[%dC", (x))
+  #define cursorbackward(x) printf("\033[%dD", (x))
+  #define RESET   "\033[0m"
+  #define BLACK   "\033[30m"      /* Black */
+  #define RED     "\033[31m"      /* Red */
+  #define GREEN   "\033[32m"      /* Green */
+  #define YELLOW  "\033[33m"      /* Yellow */
+  #define BLUE    "\033[34m"      /* Blue */
+  #define MAGENTA "\033[35m"      /* Magenta */
+  #define CYAN    "\033[36m"      /* Cyan */
+  #define WHITE   "\033[37m"      /* White */
+  #define BOLDBLACK   "\033[1m\033[30m"      /* Bold Black */
+  #define BOLDRED     "\033[1m\033[31m"      /* Bold Red */
+  #define BOLDGREEN   "\033[1m\033[32m"      /* Bold Green */
+  #define BOLDYELLOW  "\033[1m\033[33m"      /* Bold Yellow */
+  #define BOLDBLUE    "\033[1m\033[34m"      /* Bold Blue */
+  #define BOLDMAGENTA "\033[1m\033[35m"      /* Bold Magenta */
+  #define BOLDCYAN    "\033[1m\033[36m"      /* Bold Cyan */
+  #define BOLDWHITE   "\033[1m\033[37m"      /* Bold White */
+  void print_warning(char* msg) {
+    fprintf(stderr, BOLDYELLOW"WARNING: %s"RESET, msg);
+  }
+  void print_error(char* msg) {
+    fprintf(stderr, BOLDRED"ERROR: %s"RESET, msg);
+  }
+  void print_success(char* msg) {
+    fprintf(stderr, BOLDGREEN"%s"RESET, msg);
+  }
+  void print_normal(char* msg) {
+    fprintf(stderr, BOLDBLACK"%s"RESET, msg);
+  }
+
   typedef struct yy_buffer_state * YY_BUFFER_STATE;
   extern int yyparse();
   extern YY_BUFFER_STATE yy_scan_string(char * str);
@@ -46,7 +79,7 @@
 
   int yylex(void);
   void yyerror(char const *s) {
-    fprintf(stderr, "ERROR: %s\n", s);
+    fprintf(stderr, BOLDRED"ERROR: %s\n"RESET, s);
   }
 
   //Path of the program
@@ -78,7 +111,7 @@
         break;
       }
     }
-    printf("%s\n", base_path);
+    //printf("%s\n", base_path);
     return SEAS_SUCC;
   }
 
@@ -100,6 +133,10 @@
   int rc;
 
   void lite_login(int port) {
+    if (strcmp(user, "(null)") == 0) {
+      print_warning("Please, set your username! (with command `usr <username>`)\n");
+      return;
+    }
     char cmd[BUF_SIZE];
     memset(cmd, 0, BUF_SIZE);
     snprintf(cmd, SAFE_SIZE, "ssh %s@lnxsrv0%d.seas.ucla.edu", user, port);
@@ -107,6 +144,10 @@
   }
 
   void lite_scp_to_local(int port, char* from, char* to) {
+    if (strcmp(user, "(null)") == 0) {
+      print_warning("Please, set your username! (with command `usr <username>`)\n");
+      return;
+    }
     char cmd[BUF_SIZE];
     memset(cmd, 0, BUF_SIZE);
     snprintf(cmd, SAFE_SIZE, "scp -r %s@lnxsrv0%d.seas.ucla.edu:%s %s", user, port, from, to);
@@ -114,27 +155,57 @@
   }
 
   void lite_scp_to_server(int port, char* from, char* to) {
+    if (strcmp(user, "(null)") == 0) {
+      print_warning("Please, set your username! (with command `usr <username>`)\n");
+      return;
+    }
     char cmd[BUF_SIZE];
     memset(cmd, 0, BUF_SIZE);
     snprintf(cmd, SAFE_SIZE, "scp -r %s %s@lnxsrv0%d.seas.ucla.edu:%s", from, user, port, to);
     system(cmd);
   }
 
-  //char cwd[BUF_SIZE];
+  char pwd_path[BUF_SIZE];
   char pwd[BUF_SIZE];
   char keystr[BUF_SIZE];
+  int pwd_fd;
   MCRYPT td;
-  /*
-  int init_cwd() {
-    memset(cwd, 0, BUF_SIZE);
-    if (getcwd(cwd, BUF_SIZE-1) != NULL) {
-       return SEAS_SUCC;
-     } else {
-       perror("working directory");
-       return SEAS_FAIL;
-     }
+
+  int hasdir(char* path, int should_create, mode_t perm) {
+    struct stat st;
+    //If the directory exists, return TRUE
+    if (stat(path, &st) == 0 && S_ISDIR(st.st_mode)) {
+      return TRUE;
+    } else {
+      //Otherwise, optionally create the folder
+      if (should_create == TRUE) {
+        mkdir(path, perm);
+      }
+      return FALSE;
+    }
   }
-  */
+  int hasfile(char* path, int should_create, mode_t s_perm) {
+    if (access(path, F_OK) != -1) {
+      return TRUE;
+    } else {
+      if (should_create == TRUE) {
+        creat(path, s_perm);
+      }
+      return FALSE;
+    }
+  }
+  int getfilefd(char* path, int should_create, int o_flag, mode_t s_perm) {
+    if (access(path, F_OK) != -1) {
+      return open(path, o_flag);
+    } else {
+      if (should_create == TRUE) {
+        creat(path, s_perm);
+        return open(path, o_flag);
+      }
+      return -1;
+    }
+  }
+
   int init_keystr() {
     memset(keystr, 0, BUF_SIZE);
     long digits = PWD_KEY;
@@ -175,57 +246,161 @@
     return SEAS_SUCC;
   }
   int init_pwd() {
-    system("if [ -d data ]; then :; else mkdir data; fi");
+    //Clear pwd
+    memset(pwd_path, 0, BUF_SIZE);
+    memset(pwd, 0, BUF_SIZE);
 
-    int pwd_fd = open("data/.seas_pwd", O_CREAT | O_RDWR);
-    int ret = 0;
-    if ((ret = read(pwd_fd, pwd, BUF_SIZE-1)) < 0) {
+    //try find/create base directory
+    char working_path[BUF_SIZE];
+    memset(working_path, 0, BUF_SIZE);
+    snprintf(working_path, SAFE_SIZE, "%s/data", base_path);
+    hasdir(working_path, TRUE, S_IRWXU);
+
+    //now have .seas_pwd file
+    strncat(working_path, "/.seas_pwd", SAFE_SIZE - strlen(working_path));
+
+    pwd_fd = getfilefd(working_path, TRUE, O_RDWR, 0777);
+    int ret;
+    if ((ret = read(pwd_fd, pwd, SAFE_SIZE)) < 0) {
       perror("read");
       return SEAS_FAIL;
     }
+    //Save path for later easy use
+    strncpy(pwd_path, working_path, SAFE_SIZE);
+
     if (ret != 0) {
       mdecrypt_generic(td, pwd, ret);
+      //fprintf(stderr, "length: %d weird: %s", ret, pwd);
+    } else {
+      //fprintf(stderr, "???: %s", pwd);
     }
     return SEAS_SUCC;
   }
+  int init_usr() {
+    memset(user, 0, BUF_SIZE);
+
+    char working_path[BUF_SIZE];
+    memset(working_path, 0, BUF_SIZE);
+    snprintf(working_path, SAFE_SIZE, "%s/data", base_path);
+    hasdir(working_path, TRUE, S_IRWXU);
+
+    //now have .seas_pwd file
+    strncat(working_path, "/.seas_usr", SAFE_SIZE - strlen(working_path));
+
+    usr_fd = getfilefd(working_path, TRUE, O_RDWR, 0777);
+    int ret;
+    if ((ret = read(usr_fd, user, SAFE_SIZE)) < 0) {
+      perror("read");
+      return SEAS_FAIL;
+    }
+    if (ret == 0) {
+      strncpy(user, "(null)", SAFE_SIZE - strlen(user));
+    }
+    return SEAS_SUCC;
+  }
+  int init_port() {
+
+    char working_path[BUF_SIZE];
+    memset(working_path, 0, BUF_SIZE);
+    snprintf(working_path, SAFE_SIZE, "%s/data", base_path);
+    hasdir(working_path, TRUE, S_IRWXU);
+
+    //now have .seas_pwd file
+    strncat(working_path, "/.seas_port", SAFE_SIZE - strlen(working_path));
+
+    port_fd = getfilefd(working_path, TRUE, O_RDWR, 0777);
+    int ret;
+    char temp;
+    if ((ret = read(port_fd, &temp, 1)) < 0) {
+      perror("read");
+      return SEAS_FAIL;
+    }
+    if (ret == 0) {
+      port = 1;
+    } else {
+      port = atoi(&temp);
+    }
+    return SEAS_SUCC;
+  }
+
+
   int init() {
-    int ret = init_path() | init_cwd() | init_mcrypt() | init_pwd();
+    int ret = init_path() | init_mcrypt() | init_pwd() | init_usr() | init_port();
     if (ret != SEAS_SUCC) {
-      fprintf(stderr, "ERROR: initialization failed\n");
+      print_error("Initialization failed\n");
     }
     return ret;
   }
+
   void ending() {
+    close(pwd_fd);
+    close(usr_fd);
+    close(port_fd);
     mcrypt_generic_end(td);
   }
 
   void save_pwd(char* new_pwd) {
     if (strlen(new_pwd) <= 0) {
-      fprintf(stderr, "ERROR: Invalid password\n");
+      print_error("Invalid password\n");
       return;
     }
+    new_pwd[strlen(new_pwd)-1] = '\0';
+
     memset(pwd, 0, BUF_SIZE);
-    strcat(pwd, new_pwd);
-    int pwd_fd = open("data/.seas_pwd", O_TRUNC | O_RDWR);
-    if (pwd_fd < 0) {
-      fprintf(stderr, "ERROR: Password saving failed\n");
+    if (ftruncate(pwd_fd, 0) < 0) {
+    //if (truncate(pwd_path, 0) < 0) {
+      print_error("clear password file error\n");
       return;
     }
+
+    strncat(pwd, new_pwd, SAFE_SIZE);
+
     char* encoded = strdup(pwd);
     int len = strlen(encoded);
     mcrypt_generic(td, encoded, len);
-    write(pwd_fd, encoded, len);
-    fprintf(stdout, "* Password saved!\n");
+    if (write(pwd_fd, encoded, len) < 0) {
+      perror("write");
+      print_error("Password saving failed\n");
+      return;
+    }
+    print_success("\n* Password saved!\n");
+    free(encoded);
   }
+
   void del_pwd() {
     if (strlen(pwd) <= 0) return;
 
     memset(pwd, 0, BUF_SIZE);
-    if (truncate("data/.seas_pwd", 0) < 0) {
-      fprintf(stderr, "ERROR: clear password file error\n");
+    if (ftruncate(pwd_fd, 0) < 0) {
+    //if (truncate(pwd_path, 0) < 0) {
+      print_error("clear password file error\n");
       return;
     }
-    fprintf(stdout, "* Password deleted\n");
+    print_normal("* Password deleted\n");
+  }
+
+  struct termios tattr;
+
+  void auto_expect(int is_scp, char* addr_1, char* addr_2) {
+    int rc = fork();
+    if (rc == 0) {
+      char expect_path[BUF_SIZE];
+      memset(expect_path, 0, BUF_SIZE);
+      strncpy(expect_path, base_path, SAFE_SIZE);
+      strncat(expect_path, "/seas_expect", SAFE_SIZE - strlen(expect_path));
+      //fprintf(stderr, "%s", expect_path);
+      printf("%s", pwd);
+      if (is_scp == TRUE) {
+        execl(expect_path, expect_path, "1", pwd, addr_1, addr_2);
+      } else {
+        execl(expect_path, expect_path, "0", pwd, addr_1, NULL);
+      }
+      perror("fork");
+      exit(EXIT_FAILURE);
+    } else {
+      wait(NULL);
+      return;
+    }
   }
 %}
 
@@ -259,7 +434,9 @@
 prog: %empty {}
 | prog EOL {/*printf("> ");*/}
 | prog body EOL {/*printf("> ");*/}
-| prog EXIT EOL {exit(EXIT_SUCCESS);}
+| prog EXIT EOL {print_success("Goodbye!\n");
+exit(EXIT_SUCCESS);
+}
 | prog HELP EOL {
   printf("* Usage *\n\tuser *username* : set default username\n\tport *portnum* : set default server number\n\tlogin *optional_portnum* : login to server\n\t@ *server_path* => *local_path\n\t*local_path* => @ *server_path* : download and upload files/directory\n\texit : exit program\n");
 }
@@ -288,21 +465,57 @@ scp: LNXSRV NAME RIGHT_ARROW NAME {
 | LNXSRV NAME LEFT_ARROW NAME {
   lite_scp_to_server(port, $<string>4, $<string>2);
 }
+| AUTO LNXSRV NAME RIGHT_ARROW NAME {
+  char addr[BUF_SIZE];
+  memset(addr, 0, BUF_SIZE);
+  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, port, $<string>3);
+  auto_expect(TRUE, addr, $<string>5);
+}
+| AUTO LNXSRV NAME LEFT_ARROW NAME {
+  char addr[BUF_SIZE];
+  memset(addr, 0, BUF_SIZE);
+  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, port, $<string>3);
+  auto_expect(TRUE, $<string>5, addr);
+}
 | NAME LEFT_ARROW LNXSRV NAME {
   lite_scp_to_local(port, $<string>4, $<string>1);
 }
 | NAME RIGHT_ARROW LNXSRV NAME {
   lite_scp_to_server(port, $<string>1, $<string>4);
 }
+| AUTO NAME LEFT_ARROW LNXSRV NAME {
+  char addr[BUF_SIZE];
+  memset(addr, 0, BUF_SIZE);
+  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, port, $<string>5);
+  auto_expect(TRUE, addr, $<string>2);
+}
+| AUTO NAME RIGHT_ARROW LNXSRV NAME {
+  char addr[BUF_SIZE];
+  memset(addr, 0, BUF_SIZE);
+  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, port, $<string>5);
+  auto_expect(TRUE, $<string>2, addr);
+}
+
 ;
 
 
-
-server: LOGIN {
+server: login {
   lite_login(port);
 }
 | login num %prec lower {
   lite_login($<number>2);
+}
+| AUTO login {
+  char addr[BUF_SIZE];
+  memset(addr, 0, BUF_SIZE);
+  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu", user, port);
+  auto_expect(FALSE, addr, NULL);
+}
+| AUTO {
+  char addr[BUF_SIZE];
+  memset(addr, 0, BUF_SIZE);
+  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu", user, port);
+  auto_expect(FALSE, addr, NULL);
 }
 ;
 
@@ -320,7 +533,7 @@ setport: port num %prec lower {
   chr[1] = '\0';
   write(port_fd, chr, strlen(chr));
   free(chr);
-  printf("* Default login server has been changed into # %d\n", port);
+  printf("* Default login server has been changed into "BOLDGREEN"# %d\n"RESET, port);
 }
 ;
 port: PORT
@@ -334,9 +547,11 @@ setusr: usr name {
   /*Set fd to the start of file*/
   lseek(usr_fd, 0, SEEK_SET);
   memset(user, 0, BUF_SIZE);
-  strcat(user, $<string>2);
-  write(usr_fd, user, strlen(user));
-  printf("* Username has been changed into: %s\n", user);
+  strncpy(user, $<string>2, SAFE_SIZE);
+  if (write(usr_fd, user, strlen(user)) < 0) {
+    print_error("Save username failed\n");
+  }
+  printf("* Username has been changed into: "BOLDGREEN"%s\n"RESET, user);
 }
 ;
 usr: USR
@@ -345,8 +560,12 @@ name: NAME
 ;
 
 stat: STAT {
-  printf("* current username: %s\n", user);
-  printf("* current default port: %d\n", port);
+  if (strcmp(user, "(null)") == 0) {
+    printf("* current username: "BOLDRED"%s"RESET"\n", user);
+  } else {
+	  printf("* current username: "BOLDGREEN"%s"RESET"\n", user);
+  }
+  printf("* current default port (1~9): "BOLDGREEN"%d"RESET"\n", port);
 }
 ;
 
@@ -362,18 +581,22 @@ bash: BASH {
 ;
 
 key: KEY %prec lower {
-  write(STDOUT_FILENO, "Enter password: ", BUF_SIZE);
-  struct termios tattr;
+  fprintf(stderr, "Enter password: ");
   tcgetattr(STDIN_FILENO, &tattr);
   tattr.c_lflag &= ~ECHO;
+  tcsetattr(STDIN_FILENO, TCSANOW, &tattr);
+
   char buf[BUF_SIZE];
   memset(buf, 0, BUF_SIZE);
   if (read(STDIN_FILENO, buf, BUF_SIZE-1) <= 0) {
     write(STDERR_FILENO, "ERROR: Invalid password\n", BUF_SIZE);
   } else {
+    //Automatically clears old pwd
     save_pwd(buf);
   }
+
   tattr.c_lflag |= ECHO;
+  tcsetattr(STDIN_FILENO, TCSANOW, &tattr);
 }
 ;
 
@@ -405,9 +628,20 @@ void ATEXIT_handler() {
 }
 
 void print_welcome(void) {
-	printf(">> SEASnet shortcut v0.2 <<\n");
-	printf("* current username: %s\n", user);
-	printf("* current default port: %d\n", port);
+  cursorforward(20);
+	printf(BOLDBLACK">> SEASnet Shortcut v0.8 <<"RESET"\n");
+  cursorforward(17);
+	printf("<< By kevinkassimo (github ID) >>\n");
+  printf("===================================================================\n");
+  cursorforward(5);
+  if (strcmp(user, "(null)") == 0) {
+    printf("* current username: "BOLDRED"%s"RESET"\n", user);
+  } else {
+	  printf("* current username: "BOLDGREEN"%s"RESET"\n", user);
+  }
+  cursorforward(5);
+	printf("* current default port (1~9): "BOLDGREEN"%d"RESET"\n", port);
+  printf("===================================================================\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -432,23 +666,6 @@ int main(int argc, char *argv[]) {
 	history(_hist, &_ev, H_SETSIZE, HIST_SIZE);
 	//This sets up the call back functions for history functionality
 	el_set(_el, EL_HIST, history, _hist);
-
-  memset(user, 0, BUF_SIZE);
-
-  system("if [ -d temp ]; then :; else mkdir temp; fi");
-  usr_fd = open("temp/.seas_usr", O_RDWR | O_CREAT, S_IRWXU);
-  port_fd = open("temp/.seas_port", O_RDWR | O_CREAT, S_IRWXU);
-  run_fd = open("temp/.seas_ssh", O_CREAT | O_TRUNC | O_RDWR, S_IRWXU);
-
-  if (read(usr_fd, user, BUF_SIZE-1) <= 0) {
-    sprintf(user, "%s", "set_usr_name_please");
-  }
-  char* port_temp[BUF_SIZE];
-  if (read(port_fd, port_temp, BUF_SIZE-1) <= 0) {
-    port = 1;
-  } else {
-    port = atoi((const char*) port_temp);
-  }
 
   //fix weird bug
   if (port == 0) {

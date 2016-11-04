@@ -48,6 +48,8 @@ password {return KEY;}
 del {return DEL;}
 delete {return DEL;}
 
+"$" {return AUTO;}
+auto {return AUTO;}
 help {return HELP;}
 repo {return REPO;}
 stat {return STAT;}

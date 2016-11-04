@@ -1,15 +1,21 @@
+
 all: build
 mark: seas
-	@ echo "\nalias seas=\"$$PWD/seas\"\n" >> ~/.bash_profile
-
+#	TRUE_PATH=`printf "%q\n" "$$PWD"`
+#	echo $$TRUE_PATH
+	@ echo "\nalias seas=\"$$PWD\"" >> ~/.bash_profile
+	@ source ~/.bash_profile
+unmark: 
+	@ sed -ie '/^alias seas=/d' ~/.bash_profile
 seas:
 	@ if [ -e "seas" ]; then :; else flex src/token.lex; bison -d src/parser.y; gcc -o seas parser.tab.c lex.yy.c -ll -ledit -lmcrypt; fi
 
 build:
 	@ flex src/token.lex
 	@ bison -d src/parser.y
-	@ gcc -o seas parser.tab.c lex.yy.c -ll -ledit -lmcrypt
-	@ if [ -d "temp" ]; then :; else mkdir temp; fi
+#	@ gcc -o seas parser.tab.c lex.yy.c -ll -ledit -lmcrypt
+	@ gcc -o seas parser.tab.c lex.yy.c -ll -ledit -I/usr/local/Cellar/mcrypt/2.6.8/include -L/usr/local/Cellar/mcrypt/2.6.8/lib -lmcrypt
+
 required:
 	@ brew install flex
 	@ brew install bison

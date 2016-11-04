@@ -1,0 +1,25 @@
+#!/usr/bin/expect
+
+set timeout 100
+
+set is_scp [lindex $argv 0]
+set pwd [lindex $argv 1]
+set addr_1 [lindex $argv 2]
+set addr_2 [lindex $argv 3]
+
+if { $is_scp == 0 } {
+   spawn ssh $addr_1
+} else {
+}
+
+while (1) {
+ expect {
+  "password: " {
+   send -- "$pwd\n"
+  }
+  "Last login: " {
+   break
+  }
+ }
+}
+interact

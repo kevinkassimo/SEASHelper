@@ -1,0 +1,43 @@
+#!/usr/bin/expect
+
+set timeout 100
+log_user 1
+
+set is_scp [lindex $argv 0]
+set pwd [lindex $argv 1]
+set addr_1 [lindex $argv 2]
+set addr_2 [lindex $argv 3]
+
+if { $is_scp == 0 } {
+  spawn ssh $addr_1
+} else {
+  spawn scp -r $addr_1 $addr_2
+}
+
+while (1) {
+ expect {
+  "password: " {
+   send -- "$pwd\n"
+  }
+  "Last login: " {
+   break
+  }
+  "no)?" {
+   send -- "yes\n"
+  }
+  "Permission denied" {
+   log_user 1
+   send_user "* Saved password incorrect. Please input manually\n"
+   break
+  }
+  timeout {
+   log_user 1
+   send_user "* Time out\n"; exit 1
+  }
+  eof {
+   log_user 1
+   send_user "* End of File received\n"; exit 1;
+  }
+ }
+}
+interact

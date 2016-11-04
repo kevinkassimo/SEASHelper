@@ -100,8 +100,42 @@
   #define SEAS_FAIL -1
   #define SEAS_SUCC 0
   #define BUF_SIZE 1024
+  #define SAFE_SIZE 1023
   #define TRUE 1
   #define FALSE 0
+
+  //VERY NICE cursor movement LOL
+  #define cursorforward(x) printf("\033[%dC", (x))
+  #define cursorbackward(x) printf("\033[%dD", (x))
+  #define RESET   "\033[0m"
+  #define BLACK   "\033[30m"      /* Black */
+  #define RED     "\033[31m"      /* Red */
+  #define GREEN   "\033[32m"      /* Green */
+  #define YELLOW  "\033[33m"      /* Yellow */
+  #define BLUE    "\033[34m"      /* Blue */
+  #define MAGENTA "\033[35m"      /* Magenta */
+  #define CYAN    "\033[36m"      /* Cyan */
+  #define WHITE   "\033[37m"      /* White */
+  #define BOLDBLACK   "\033[1m\033[30m"      /* Bold Black */
+  #define BOLDRED     "\033[1m\033[31m"      /* Bold Red */
+  #define BOLDGREEN   "\033[1m\033[32m"      /* Bold Green */
+  #define BOLDYELLOW  "\033[1m\033[33m"      /* Bold Yellow */
+  #define BOLDBLUE    "\033[1m\033[34m"      /* Bold Blue */
+  #define BOLDMAGENTA "\033[1m\033[35m"      /* Bold Magenta */
+  #define BOLDCYAN    "\033[1m\033[36m"      /* Bold Cyan */
+  #define BOLDWHITE   "\033[1m\033[37m"      /* Bold White */
+  void print_warning(char* msg) {
+    fprintf(stderr, BOLDYELLOW"WARNING: %s"RESET, msg);
+  }
+  void print_error(char* msg) {
+    fprintf(stderr, BOLDRED"ERROR: %s"RESET, msg);
+  }
+  void print_success(char* msg) {
+    fprintf(stderr, BOLDGREEN"%s"RESET, msg);
+  }
+  void print_normal(char* msg) {
+    fprintf(stderr, BOLDBLACK"%s"RESET, msg);
+  }
 
   typedef struct yy_buffer_state * YY_BUFFER_STATE;
   extern int yyparse();
@@ -110,7 +144,7 @@
 
   int yylex(void);
   void yyerror(char const *s) {
-    fprintf(stderr, "ERROR: %s\n", s);
+    fprintf(stderr, BOLDRED"ERROR: %s\n"RESET, s);
   }
 
   //Path of the program
@@ -122,13 +156,14 @@
     memset(base_path, 0, BUF_SIZE);
 
     int i;
+    //Apple and linux seems to be diverting at this point
 #ifdef __APPLE__
   if (proc_pidpath (getpid(), base_path, BUF_SIZE) <= 0) {
       perror("proc_pidpath");
       return SEAS_FAIL;
   }
 #elif __linux__
-    sprintf(base_path, "/proc/%d/exe", getpid());
+    snprintf(base_path, SAFE_SIZE, "/proc/self/exe");
     //Use readlink to retrieve the base path
     if (readlink(temp, base_path, PATH_MAX) == -1) {
       perror("readlink");
@@ -141,15 +176,15 @@
         break;
       }
     }
-    printf("%s\n", base_path);
+    //printf("%s\n", base_path);
     return SEAS_SUCC;
   }
 
   //Create absolute path
   void create_full_path(char* dest, char* sub_path) {
-    strcat(dest, base_path);
-    strcat(dest, "/");
-    strcat(dest, sub_path);
+    strncat(dest, base_path, SAFE_SIZE - strlen(dest));
+    strncat(dest, "/", SAFE_SIZE - strlen(dest));
+    strncat(dest, sub_path, SAFE_SIZE - strlen(dest));
   }
 
   int usr_fd;
@@ -163,39 +198,79 @@
   int rc;
 
   void lite_login(int port) {
+    if (strcmp(user, "(null)") == 0) {
+      print_warning("Please, set your username! (with command `usr <username>`)\n");
+      return;
+    }
     char cmd[BUF_SIZE];
     memset(cmd, 0, BUF_SIZE);
-    sprintf(cmd, "ssh %s@lnxsrv0%d.seas.ucla.edu", user, port);
+    snprintf(cmd, SAFE_SIZE, "ssh %s@lnxsrv0%d.seas.ucla.edu", user, port);
     system(cmd);
   }
 
   void lite_scp_to_local(int port, char* from, char* to) {
+    if (strcmp(user, "(null)") == 0) {
+      print_warning("Please, set your username! (with command `usr <username>`)\n");
+      return;
+    }
     char cmd[BUF_SIZE];
     memset(cmd, 0, BUF_SIZE);
-    sprintf(cmd, "scp -r %s@lnxsrv0%d.seas.ucla.edu:%s %s", user, port, from, to);
+    snprintf(cmd, SAFE_SIZE, "scp -r %s@lnxsrv0%d.seas.ucla.edu:%s %s", user, port, from, to);
     system(cmd);
   }
 
   void lite_scp_to_server(int port, char* from, char* to) {
+    if (strcmp(user, "(null)") == 0) {
+      print_warning("Please, set your username! (with command `usr <username>`)\n");
+      return;
+    }
     char cmd[BUF_SIZE];
     memset(cmd, 0, BUF_SIZE);
-    sprintf(cmd, "scp -r %s %s@lnxsrv0%d.seas.ucla.edu:%s", from, user, port, to);
+    snprintf(cmd, SAFE_SIZE, "scp -r %s %s@lnxsrv0%d.seas.ucla.edu:%s", from, user, port, to);
     system(cmd);
   }
 
-  char cwd[BUF_SIZE];
+  char pwd_path[BUF_SIZE];
   char pwd[BUF_SIZE];
   char keystr[BUF_SIZE];
+  int pwd_fd;
   MCRYPT td;
-  int init_cwd() {
-    memset(cwd, 0, BUF_SIZE);
-    if (getcwd(cwd, BUF_SIZE-1) != NULL) {
-       return SEAS_SUCC;
-     } else {
-       perror("working directory");
-       return SEAS_FAIL;
-     }
+
+  int hasdir(char* path, int should_create, mode_t perm) {
+    struct stat st;
+    //If the directory exists, return TRUE
+    if (stat(path, &st) == 0 && S_ISDIR(st.st_mode)) {
+      return TRUE;
+    } else {
+      //Otherwise, optionally create the folder
+      if (should_create == TRUE) {
+        mkdir(path, perm);
+      }
+      return FALSE;
+    }
   }
+  int hasfile(char* path, int should_create, mode_t s_perm) {
+    if (access(path, F_OK) != -1) {
+      return TRUE;
+    } else {
+      if (should_create == TRUE) {
+        creat(path, s_perm);
+      }
+      return FALSE;
+    }
+  }
+  int getfilefd(char* path, int should_create, int o_flag, mode_t s_perm) {
+    if (access(path, F_OK) != -1) {
+      return open(path, o_flag);
+    } else {
+      if (should_create == TRUE) {
+        creat(path, s_perm);
+        return open(path, o_flag);
+      }
+      return -1;
+    }
+  }
+
   int init_keystr() {
     memset(keystr, 0, BUF_SIZE);
     long digits = PWD_KEY;
@@ -217,7 +292,7 @@
   int init_mcrypt() {
     init_keystr();
     char *IV;
-    int keysize=16; /* 128 bits */
+    int keysize = 16;
     td = mcrypt_module_open("twofish", NULL, "cfb", NULL);
     if (td == MCRYPT_FAILED) {
       return SEAS_FAIL;
@@ -236,61 +311,164 @@
     return SEAS_SUCC;
   }
   int init_pwd() {
+    //Clear pwd
+    memset(pwd_path, 0, BUF_SIZE);
+    memset(pwd, 0, BUF_SIZE);
 
-    system("if [ -d data ]; then :; else mkdir data; fi");
+    //try find/create base directory
+    char working_path[BUF_SIZE];
+    memset(working_path, 0, BUF_SIZE);
+    snprintf(working_path, SAFE_SIZE, "%s/data", base_path);
+    hasdir(working_path, TRUE, S_IRWXU);
 
-    int pwd_fd = open("data/.seas_pwd", O_CREAT | O_RDWR);
-    int ret = 0;
-    if ((ret = read(pwd_fd, pwd, BUF_SIZE-1)) < 0) {
+    //now have .seas_pwd file
+    strncat(working_path, "/.seas_pwd", SAFE_SIZE - strlen(working_path));
+
+    pwd_fd = getfilefd(working_path, TRUE, O_RDWR, 0777);
+    int ret;
+    if ((ret = read(pwd_fd, pwd, SAFE_SIZE)) < 0) {
       perror("read");
       return SEAS_FAIL;
     }
+    //Save path for later easy use
+    strncpy(pwd_path, working_path, SAFE_SIZE);
+
     if (ret != 0) {
       mdecrypt_generic(td, pwd, ret);
+      //fprintf(stderr, "length: %d weird: %s", ret, pwd);
+    } else {
+      //fprintf(stderr, "???: %s", pwd);
     }
     return SEAS_SUCC;
   }
+  int init_usr() {
+    memset(user, 0, BUF_SIZE);
+
+    char working_path[BUF_SIZE];
+    memset(working_path, 0, BUF_SIZE);
+    snprintf(working_path, SAFE_SIZE, "%s/data", base_path);
+    hasdir(working_path, TRUE, S_IRWXU);
+
+    //now have .seas_pwd file
+    strncat(working_path, "/.seas_usr", SAFE_SIZE - strlen(working_path));
+
+    usr_fd = getfilefd(working_path, TRUE, O_RDWR, 0777);
+    int ret;
+    if ((ret = read(usr_fd, user, SAFE_SIZE)) < 0) {
+      perror("read");
+      return SEAS_FAIL;
+    }
+    if (ret == 0) {
+      strncpy(user, "(null)", SAFE_SIZE - strlen(user));
+    }
+    return SEAS_SUCC;
+  }
+  int init_port() {
+
+    char working_path[BUF_SIZE];
+    memset(working_path, 0, BUF_SIZE);
+    snprintf(working_path, SAFE_SIZE, "%s/data", base_path);
+    hasdir(working_path, TRUE, S_IRWXU);
+
+    //now have .seas_pwd file
+    strncat(working_path, "/.seas_port", SAFE_SIZE - strlen(working_path));
+
+    port_fd = getfilefd(working_path, TRUE, O_RDWR, 0777);
+    int ret;
+    char temp;
+    if ((ret = read(port_fd, &temp, 1)) < 0) {
+      perror("read");
+      return SEAS_FAIL;
+    }
+    if (ret == 0) {
+      port = 1;
+    } else {
+      port = atoi(&temp);
+    }
+    return SEAS_SUCC;
+  }
+
+
   int init() {
-    int ret = init_path() | init_cwd() | init_mcrypt() | init_pwd();
+    int ret = init_path() | init_mcrypt() | init_pwd() | init_usr() | init_port();
     if (ret != SEAS_SUCC) {
-      fprintf(stderr, "ERROR: initialization failed\n");
+      print_error("Initialization failed\n");
     }
     return ret;
   }
+
   void ending() {
+    close(pwd_fd);
+    close(usr_fd);
+    close(port_fd);
     mcrypt_generic_end(td);
   }
 
   void save_pwd(char* new_pwd) {
     if (strlen(new_pwd) <= 0) {
-      fprintf(stderr, "ERROR: Invalid password\n");
+      print_error("Invalid password\n");
       return;
     }
+    new_pwd[strlen(new_pwd)-1] = '\0';
+
     memset(pwd, 0, BUF_SIZE);
-    strcat(pwd, new_pwd);
-    int pwd_fd = open("data/.seas_pwd", O_TRUNC | O_RDWR);
-    if (pwd_fd < 0) {
-      fprintf(stderr, "ERROR: Password saving failed\n");
+    if (ftruncate(pwd_fd, 0) < 0) {
+    //if (truncate(pwd_path, 0) < 0) {
+      print_error("clear password file error\n");
       return;
     }
+
+    strncat(pwd, new_pwd, SAFE_SIZE);
+
     char* encoded = strdup(pwd);
     int len = strlen(encoded);
     mcrypt_generic(td, encoded, len);
-    write(pwd_fd, encoded, len);
-    fprintf(stdout, "* Password saved!\n");
+    if (write(pwd_fd, encoded, len) < 0) {
+      perror("write");
+      print_error("Password saving failed\n");
+      return;
+    }
+    print_success("\n* Password saved!\n");
+    free(encoded);
   }
+
   void del_pwd() {
     if (strlen(pwd) <= 0) return;
 
     memset(pwd, 0, BUF_SIZE);
-    if (truncate("data/.seas_pwd", 0) < 0) {
-      fprintf(stderr, "ERROR: clear password file error\n");
+    if (ftruncate(pwd_fd, 0) < 0) {
+    //if (truncate(pwd_path, 0) < 0) {
+      print_error("clear password file error\n");
       return;
     }
-    fprintf(stdout, "* Password deleted\n");
+    print_normal("* Password deleted\n");
   }
 
-#line 294 "parser.tab.c" /* yacc.c:339  */
+  struct termios tattr;
+
+  void auto_expect(int is_scp, char* addr_1, char* addr_2) {
+    int rc = fork();
+    if (rc == 0) {
+      char expect_path[BUF_SIZE];
+      memset(expect_path, 0, BUF_SIZE);
+      strncpy(expect_path, base_path, SAFE_SIZE);
+      strncat(expect_path, "/seas_expect", SAFE_SIZE - strlen(expect_path));
+      //fprintf(stderr, "%s", expect_path);
+      printf("%s", pwd);
+      if (is_scp == TRUE) {
+        execl(expect_path, expect_path, "1", pwd, addr_1, addr_2);
+      } else {
+        execl(expect_path, expect_path, "0", pwd, addr_1, NULL);
+      }
+      perror("fork");
+      exit(EXIT_FAILURE);
+    } else {
+      wait(NULL);
+      return;
+    }
+  }
+
+#line 472 "parser.tab.c" /* yacc.c:339  */
 
 # ifndef YY_NULLPTR
 #  if defined __cplusplus && 201103L <= __cplusplus
@@ -354,12 +532,12 @@ extern int yydebug;
 
 union YYSTYPE
 {
-#line 229 "src/parser.y" /* yacc.c:355  */
+#line 407 "src/parser.y" /* yacc.c:355  */
 
   int number;
   char* string;
 
-#line 363 "parser.tab.c" /* yacc.c:355  */
+#line 541 "parser.tab.c" /* yacc.c:355  */
 };
 
 typedef union YYSTYPE YYSTYPE;
@@ -376,7 +554,7 @@ int yyparse (void);
 
 /* Copy the second part of user declarations.  */
 
-#line 380 "parser.tab.c" /* yacc.c:358  */
+#line 558 "parser.tab.c" /* yacc.c:358  */
 
 #ifdef short
 # undef short
@@ -618,16 +796,16 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  2
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   36
+#define YYLAST   55
 
 /* YYNTOKENS -- Number of terminals.  */
 #define YYNTOKENS  24
 /* YYNNTS -- Number of nonterminals.  */
 #define YYNNTS  16
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  32
+#define YYNRULES  38
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  49
+#define YYNSTATES  64
 
 /* YYTRANSLATE[YYX] -- Symbol number corresponding to YYX as returned
    by yylex, with out-of-bounds checking.  */
@@ -675,10 +853,10 @@ static const yytype_uint8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint16 yyrline[] =
 {
-       0,   256,   256,   257,   258,   259,   260,   263,   272,   273,
-     274,   275,   276,   277,   278,   279,   282,   285,   288,   291,
-     298,   301,   306,   309,   323,   325,   328,   339,   341,   344,
-     350,   361,   377
+       0,   434,   434,   435,   436,   437,   440,   443,   452,   453,
+     454,   455,   456,   457,   458,   459,   462,   465,   468,   474,
+     480,   483,   486,   492,   502,   505,   508,   514,   522,   525,
+     539,   541,   544,   557,   559,   562,   572,   583,   603
 };
 #endif
 
@@ -711,7 +889,7 @@ static const yytype_uint16 yytoknum[] =
 #define yypact_value_is_default(Yystate) \
   (!!((Yystate) == (-13)))
 
-#define YYTABLE_NINF -23
+#define YYTABLE_NINF -1
 
 #define yytable_value_is_error(Yytable_value) \
   0
@@ -720,11 +898,13 @@ static const yytype_uint16 yytoknum[] =
      STATE-NUM.  */
 static const yytype_int8 yypact[] =
 {
-     -13,     0,   -13,   -13,     1,     5,   -13,    -2,   -13,     2,
-       4,   -13,   -13,     8,   -13,   -12,     9,   -13,   -13,    10,
-     -13,    10,   -13,     6,   -13,   -13,   -13,   -13,   -13,   -13,
-      -1,   -13,   -13,    18,    19,   -13,   -13,   -13,   -13,   -13,
-     -13,    11,    12,    13,    14,   -13,   -13,   -13,   -13
+     -13,     0,   -13,   -13,    -2,     5,   -13,   -13,   -13,     6,
+      11,   -13,     7,   -13,    15,   -13,   -12,    16,   -13,   -13,
+      17,   -13,    17,   -13,    13,   -13,   -13,   -13,   -13,   -13,
+     -13,     8,   -13,    18,    10,   -13,   -13,    25,    26,   -13,
+     -13,   -13,   -13,   -13,   -13,    19,    20,    14,    27,    31,
+      22,    23,   -13,   -13,    24,    28,    29,    30,   -13,   -13,
+     -13,   -13,   -13,   -13
 };
 
   /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -732,44 +912,50 @@ static const yytype_int8 yypact[] =
      means the default is an error.  */
 static const yytype_uint8 yydefact[] =
 {
-       2,     0,     1,    27,     0,     0,    24,    20,    29,     0,
-       0,    30,     3,     0,    31,     0,     0,    11,     9,     0,
-      10,     0,     8,     0,    12,    13,    14,    15,     6,     7,
-       0,    32,     5,     0,     0,     4,    25,    21,    23,    28,
-      26,     0,     0,     0,     0,    17,    16,    18,    19
+       2,     0,     1,    33,     0,     0,    30,    28,    35,     0,
+       0,    36,    27,     3,     0,    37,     0,     0,    11,     9,
+      24,    10,     0,     8,     0,    12,    13,    14,    15,     6,
+       7,     0,    38,     0,     0,    26,     5,     0,     0,     4,
+      31,    25,    29,    34,    32,     0,     0,     0,     0,     0,
+       0,     0,    17,    16,     0,     0,     0,     0,    20,    21,
+      19,    18,    22,    23
 };
 
   /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
-     -13,   -13,   -13,   -13,   -13,   -13,   -13,   -13,    15,   -13,
+     -13,   -13,   -13,   -13,   -13,    32,   -13,   -13,    33,   -13,
      -13,   -13,   -13,   -13,   -13,   -13
 };
 
   /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int8 yydefgoto[] =
 {
-      -1,     1,    16,    17,    18,    19,    20,    21,    37,    22,
-      23,    40,    24,    25,    26,    27
+      -1,     1,    17,    18,    19,    20,    21,    22,    41,    23,
+      24,    44,    25,    26,    27,    28
 };
 
   /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
      positive, shift that token.  If negative, reduce the rule whose
      number is the opposite.  If YYTABLE_NINF, syntax error.  */
-static const yytype_int8 yytable[] =
+static const yytype_uint8 yytable[] =
 {
-       2,    33,    34,     3,     4,     5,     6,     7,     8,     9,
-      10,    11,    41,    42,   -22,    12,    28,    13,    14,    15,
-      29,    30,    31,    32,    35,    39,    36,    43,    44,     0,
-      45,    46,    47,    48,     0,     0,    38
+       2,    37,    38,     3,     4,     5,     6,     7,     8,     9,
+      10,    11,    12,    29,     7,    13,    33,    14,    15,    16,
+      30,    45,    46,    48,    49,    31,    34,    54,    55,    32,
+      36,    39,    43,    40,    50,    51,    56,    47,    52,    53,
+      57,    58,    59,    60,    35,     0,     0,    61,    62,    63,
+       0,     0,     0,     0,     0,    42
 };
 
 static const yytype_int8 yycheck[] =
 {
        0,    13,    14,     3,     4,     5,     6,     7,     8,     9,
-      10,    11,    13,    14,    16,    15,    15,    17,    18,    19,
-      15,    19,    18,    15,    15,    19,    16,     9,     9,    -1,
-      19,    19,    19,    19,    -1,    -1,    21
+      10,    11,    12,    15,     7,    15,     9,    17,    18,    19,
+      15,    13,    14,    13,    14,    19,    19,    13,    14,    18,
+      15,    15,    19,    16,     9,     9,     9,    19,    19,    19,
+       9,    19,    19,    19,    12,    -1,    -1,    19,    19,    19,
+      -1,    -1,    -1,    -1,    -1,    22
 };
 
   /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
@@ -777,10 +963,12 @@ static const yytype_int8 yycheck[] =
 static const yytype_uint8 yystos[] =
 {
        0,    25,     0,     3,     4,     5,     6,     7,     8,     9,
-      10,    11,    15,    17,    18,    19,    26,    27,    28,    29,
-      30,    31,    33,    34,    36,    37,    38,    39,    15,    15,
-      19,    18,    15,    13,    14,    15,    16,    32,    32,    19,
-      35,    13,    14,     9,     9,    19,    19,    19,    19
+      10,    11,    12,    15,    17,    18,    19,    26,    27,    28,
+      29,    30,    31,    33,    34,    36,    37,    38,    39,    15,
+      15,    19,    18,     9,    19,    29,    15,    13,    14,    15,
+      16,    32,    32,    19,    35,    13,    14,    19,    13,    14,
+       9,     9,    19,    19,    13,    14,     9,     9,    19,    19,
+      19,    19,    19,    19
 };
 
   /* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
@@ -788,17 +976,17 @@ static const yytype_uint8 yyr1[] =
 {
        0,    24,    25,    25,    25,    25,    25,    25,    26,    26,
       26,    26,    26,    26,    26,    26,    27,    27,    27,    27,
-      28,    28,    29,    30,    31,    32,    33,    34,    35,    36,
-      37,    38,    39
+      27,    27,    27,    27,    28,    28,    28,    28,    29,    30,
+      31,    32,    33,    34,    35,    36,    37,    38,    39
 };
 
   /* YYR2[YYN] -- Number of symbols on the right hand side of rule YYN.  */
 static const yytype_uint8 yyr2[] =
 {
        0,     2,     0,     2,     3,     3,     3,     3,     1,     1,
-       1,     1,     1,     1,     1,     1,     4,     4,     4,     4,
-       1,     2,     1,     2,     1,     1,     2,     1,     1,     1,
-       1,     1,     2
+       1,     1,     1,     1,     1,     1,     4,     4,     5,     5,
+       4,     4,     5,     5,     1,     2,     2,     1,     1,     2,
+       1,     1,     2,     1,     1,     1,     1,     1,     2
 };
 
 
@@ -1475,39 +1663,41 @@ yyreduce:
   switch (yyn)
     {
         case 2:
-#line 256 "src/parser.y" /* yacc.c:1661  */
+#line 434 "src/parser.y" /* yacc.c:1661  */
     {}
-#line 1481 "parser.tab.c" /* yacc.c:1661  */
+#line 1669 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 3:
-#line 257 "src/parser.y" /* yacc.c:1661  */
+#line 435 "src/parser.y" /* yacc.c:1661  */
     {/*printf("> ");*/}
-#line 1487 "parser.tab.c" /* yacc.c:1661  */
+#line 1675 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 4:
-#line 258 "src/parser.y" /* yacc.c:1661  */
+#line 436 "src/parser.y" /* yacc.c:1661  */
     {/*printf("> ");*/}
-#line 1493 "parser.tab.c" /* yacc.c:1661  */
+#line 1681 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 5:
-#line 259 "src/parser.y" /* yacc.c:1661  */
-    {exit(EXIT_SUCCESS);}
-#line 1499 "parser.tab.c" /* yacc.c:1661  */
+#line 437 "src/parser.y" /* yacc.c:1661  */
+    {print_success("Goodbye!\n");
+exit(EXIT_SUCCESS);
+}
+#line 1689 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 6:
-#line 260 "src/parser.y" /* yacc.c:1661  */
+#line 440 "src/parser.y" /* yacc.c:1661  */
     {
   printf("* Usage *\n\tuser *username* : set default username\n\tport *portnum* : set default server number\n\tlogin *optional_portnum* : login to server\n\t@ *server_path* => *local_path\n\t*local_path* => @ *server_path* : download and upload files/directory\n\texit : exit program\n");
 }
-#line 1507 "parser.tab.c" /* yacc.c:1661  */
+#line 1697 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 7:
-#line 263 "src/parser.y" /* yacc.c:1661  */
+#line 443 "src/parser.y" /* yacc.c:1661  */
     {
 #ifdef __APPLE__
 system("open https://github.com/kevinkassimo/SEASHelper");
@@ -1515,59 +1705,125 @@ system("open https://github.com/kevinkassimo/SEASHelper");
 system("xdg-open https://github.com/kevinkassimo/SEASHelper");
 #endif
 }
-#line 1519 "parser.tab.c" /* yacc.c:1661  */
+#line 1709 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 16:
-#line 282 "src/parser.y" /* yacc.c:1661  */
+#line 462 "src/parser.y" /* yacc.c:1661  */
     {
   lite_scp_to_local(port, (yyvsp[-2].string), (yyvsp[0].string));
 }
-#line 1527 "parser.tab.c" /* yacc.c:1661  */
+#line 1717 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 17:
-#line 285 "src/parser.y" /* yacc.c:1661  */
+#line 465 "src/parser.y" /* yacc.c:1661  */
     {
   lite_scp_to_server(port, (yyvsp[0].string), (yyvsp[-2].string));
 }
-#line 1535 "parser.tab.c" /* yacc.c:1661  */
+#line 1725 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 18:
-#line 288 "src/parser.y" /* yacc.c:1661  */
+#line 468 "src/parser.y" /* yacc.c:1661  */
     {
-  lite_scp_to_local(port, (yyvsp[0].string), (yyvsp[-3].string));
+  char addr[BUF_SIZE];
+  memset(addr, 0, BUF_SIZE);
+  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, port, (yyvsp[-2].string));
+  auto_expect(TRUE, addr, (yyvsp[0].string));
 }
-#line 1543 "parser.tab.c" /* yacc.c:1661  */
+#line 1736 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 19:
-#line 291 "src/parser.y" /* yacc.c:1661  */
+#line 474 "src/parser.y" /* yacc.c:1661  */
     {
-  lite_scp_to_server(port, (yyvsp[-3].string), (yyvsp[0].string));
+  char addr[BUF_SIZE];
+  memset(addr, 0, BUF_SIZE);
+  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, port, (yyvsp[-2].string));
+  auto_expect(TRUE, (yyvsp[0].string), addr);
 }
-#line 1551 "parser.tab.c" /* yacc.c:1661  */
+#line 1747 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 20:
-#line 298 "src/parser.y" /* yacc.c:1661  */
+#line 480 "src/parser.y" /* yacc.c:1661  */
     {
-  lite_login(port);
+  lite_scp_to_local(port, (yyvsp[0].string), (yyvsp[-3].string));
 }
-#line 1559 "parser.tab.c" /* yacc.c:1661  */
+#line 1755 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 21:
-#line 301 "src/parser.y" /* yacc.c:1661  */
+#line 483 "src/parser.y" /* yacc.c:1661  */
     {
-  lite_login((yyvsp[0].number));
+  lite_scp_to_server(port, (yyvsp[-3].string), (yyvsp[0].string));
 }
-#line 1567 "parser.tab.c" /* yacc.c:1661  */
+#line 1763 "parser.tab.c" /* yacc.c:1661  */
+    break;
+
+  case 22:
+#line 486 "src/parser.y" /* yacc.c:1661  */
+    {
+  char addr[BUF_SIZE];
+  memset(addr, 0, BUF_SIZE);
+  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, port, (yyvsp[0].string));
+  auto_expect(TRUE, addr, (yyvsp[-3].string));
+}
+#line 1774 "parser.tab.c" /* yacc.c:1661  */
     break;
 
   case 23:
-#line 309 "src/parser.y" /* yacc.c:1661  */
+#line 492 "src/parser.y" /* yacc.c:1661  */
+    {
+  char addr[BUF_SIZE];
+  memset(addr, 0, BUF_SIZE);
+  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, port, (yyvsp[0].string));
+  auto_expect(TRUE, (yyvsp[-3].string), addr);
+}
+#line 1785 "parser.tab.c" /* yacc.c:1661  */
+    break;
+
+  case 24:
+#line 502 "src/parser.y" /* yacc.c:1661  */
+    {
+  lite_login(port);
+}
+#line 1793 "parser.tab.c" /* yacc.c:1661  */
+    break;
+
+  case 25:
+#line 505 "src/parser.y" /* yacc.c:1661  */
+    {
+  lite_login((yyvsp[0].number));
+}
+#line 1801 "parser.tab.c" /* yacc.c:1661  */
+    break;
+
+  case 26:
+#line 508 "src/parser.y" /* yacc.c:1661  */
+    {
+  char addr[BUF_SIZE];
+  memset(addr, 0, BUF_SIZE);
+  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu", user, port);
+  auto_expect(FALSE, addr, NULL);
+}
+#line 1812 "parser.tab.c" /* yacc.c:1661  */
+    break;
+
+  case 27:
+#line 514 "src/parser.y" /* yacc.c:1661  */
+    {
+  char addr[BUF_SIZE];
+  memset(addr, 0, BUF_SIZE);
+  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu", user, port);
+  auto_expect(FALSE, addr, NULL);
+}
+#line 1823 "parser.tab.c" /* yacc.c:1661  */
+    break;
+
+  case 29:
+#line 525 "src/parser.y" /* yacc.c:1661  */
     {
   /*Truncate only when we reset the new name*/
   ftruncate(port_fd, 0);
@@ -1579,37 +1835,43 @@ system("xdg-open https://github.com/kevinkassimo/SEASHelper");
   chr[1] = '\0';
   write(port_fd, chr, strlen(chr));
   free(chr);
-  printf("* Default login server has been changed into # %d\n", port);
+  printf("* Default login server has been changed into "BOLDGREEN"# %d\n"RESET, port);
 }
-#line 1585 "parser.tab.c" /* yacc.c:1661  */
+#line 1841 "parser.tab.c" /* yacc.c:1661  */
     break;
 
-  case 26:
-#line 328 "src/parser.y" /* yacc.c:1661  */
+  case 32:
+#line 544 "src/parser.y" /* yacc.c:1661  */
     {
   /*Truncate only when we reset the new name*/
   ftruncate(usr_fd, 0);
   /*Set fd to the start of file*/
   lseek(usr_fd, 0, SEEK_SET);
   memset(user, 0, BUF_SIZE);
-  strcat(user, (yyvsp[0].string));
-  write(usr_fd, user, strlen(user));
-  printf("* Username has been changed into: %s\n", user);
+  strncpy(user, (yyvsp[0].string), SAFE_SIZE);
+  if (write(usr_fd, user, strlen(user)) < 0) {
+    print_error("Save username failed\n");
+  }
+  printf("* Username has been changed into: "BOLDGREEN"%s\n"RESET, user);
 }
-#line 1600 "parser.tab.c" /* yacc.c:1661  */
+#line 1858 "parser.tab.c" /* yacc.c:1661  */
     break;
 
-  case 29:
-#line 344 "src/parser.y" /* yacc.c:1661  */
+  case 35:
+#line 562 "src/parser.y" /* yacc.c:1661  */
     {
-  printf("* current username: %s\n", user);
-  printf("* current default port: %d\n", port);
+  if (strcmp(user, "(null)") == 0) {
+    printf("* current username: "BOLDRED"%s"RESET"\n", user);
+  } else {
+	  printf("* current username: "BOLDGREEN"%s"RESET"\n", user);
+  }
+  printf("* current default port (1~9): "BOLDGREEN"%d"RESET"\n", port);
 }
-#line 1609 "parser.tab.c" /* yacc.c:1661  */
+#line 1871 "parser.tab.c" /* yacc.c:1661  */
     break;
 
-  case 30:
-#line 350 "src/parser.y" /* yacc.c:1661  */
+  case 36:
+#line 572 "src/parser.y" /* yacc.c:1661  */
     {
   rc = fork();
   if (rc == 0) {
@@ -1619,38 +1881,42 @@ system("xdg-open https://github.com/kevinkassimo/SEASHelper");
     wait(NULL);
   }
 }
-#line 1623 "parser.tab.c" /* yacc.c:1661  */
+#line 1885 "parser.tab.c" /* yacc.c:1661  */
     break;
 
-  case 31:
-#line 361 "src/parser.y" /* yacc.c:1661  */
+  case 37:
+#line 583 "src/parser.y" /* yacc.c:1661  */
     {
-  write(STDOUT_FILENO, "Enter password: ", BUF_SIZE);
-  struct termios tattr;
+  fprintf(stderr, "Enter password: ");
   tcgetattr(STDIN_FILENO, &tattr);
   tattr.c_lflag &= ~ECHO;
+  tcsetattr(STDIN_FILENO, TCSANOW, &tattr);
+
   char buf[BUF_SIZE];
   memset(buf, 0, BUF_SIZE);
   if (read(STDIN_FILENO, buf, BUF_SIZE-1) <= 0) {
     write(STDERR_FILENO, "ERROR: Invalid password\n", BUF_SIZE);
   } else {
+    //Automatically clears old pwd
     save_pwd(buf);
   }
+
   tattr.c_lflag |= ECHO;
+  tcsetattr(STDIN_FILENO, TCSANOW, &tattr);
 }
-#line 1642 "parser.tab.c" /* yacc.c:1661  */
+#line 1908 "parser.tab.c" /* yacc.c:1661  */
     break;
 
-  case 32:
-#line 377 "src/parser.y" /* yacc.c:1661  */
+  case 38:
+#line 603 "src/parser.y" /* yacc.c:1661  */
     {
   del_pwd();
 }
-#line 1650 "parser.tab.c" /* yacc.c:1661  */
+#line 1916 "parser.tab.c" /* yacc.c:1661  */
     break;
 
 
-#line 1654 "parser.tab.c" /* yacc.c:1661  */
+#line 1920 "parser.tab.c" /* yacc.c:1661  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -1878,7 +2144,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 381 "src/parser.y" /* yacc.c:1906  */
+#line 607 "src/parser.y" /* yacc.c:1906  */
 
 
 #define HIST_SIZE 800
@@ -1903,9 +2169,20 @@ void ATEXIT_handler() {
 }
 
 void print_welcome(void) {
-	printf(">> SEASnet shortcut v0.2 <<\n");
-	printf("* current username: %s\n", user);
-	printf("* current default port: %d\n", port);
+  cursorforward(20);
+	printf(BOLDBLACK">> SEASnet Shortcut v0.8 <<"RESET"\n");
+  cursorforward(17);
+	printf("<< By kevinkassimo (github ID) >>\n");
+  printf("===================================================================\n");
+  cursorforward(5);
+  if (strcmp(user, "(null)") == 0) {
+    printf("* current username: "BOLDRED"%s"RESET"\n", user);
+  } else {
+	  printf("* current username: "BOLDGREEN"%s"RESET"\n", user);
+  }
+  cursorforward(5);
+	printf("* current default port (1~9): "BOLDGREEN"%d"RESET"\n", port);
+  printf("===================================================================\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -1930,23 +2207,6 @@ int main(int argc, char *argv[]) {
 	history(_hist, &_ev, H_SETSIZE, HIST_SIZE);
 	//This sets up the call back functions for history functionality
 	el_set(_el, EL_HIST, history, _hist);
-
-  memset(user, 0, BUF_SIZE);
-
-  system("if [ -d temp ]; then :; else mkdir temp; fi");
-  usr_fd = open("temp/.seas_usr", O_RDWR | O_CREAT, S_IRWXU);
-  port_fd = open("temp/.seas_port", O_RDWR | O_CREAT, S_IRWXU);
-  run_fd = open("temp/.seas_ssh", O_CREAT | O_TRUNC | O_RDWR, S_IRWXU);
-
-  if (read(usr_fd, user, BUF_SIZE-1) <= 0) {
-    sprintf(user, "%s", "set_usr_name_please");
-  }
-  char* port_temp[BUF_SIZE];
-  if (read(port_fd, port_temp, BUF_SIZE-1) <= 0) {
-    port = 1;
-  } else {
-    port = atoi((const char*) port_temp);
-  }
 
   //fix weird bug
   if (port == 0) {
