@@ -165,6 +165,7 @@
   }
 
   char pwd_path[BUF_SIZE];
+  char* homedir = NULL;
   char pwd[BUF_SIZE];
   char keystr[BUF_SIZE];
   int pwd_fd;
@@ -323,6 +324,9 @@
 
 
   int init() {
+    if ((homedir = getenv("HOME")) == NULL) {
+      print_error("Something is wrong with your $HOME\n");
+    }
     int ret = init_path() | init_mcrypt() | init_pwd() | init_usr() | init_srv();
     if (ret != SEAS_SUCC) {
       print_error("Initialization failed\n");
@@ -400,6 +404,66 @@
       }
     }
     return new_str;
+  }
+
+  char* no_escape(char* str) {
+    if (strlen(str) > 0) {
+      if (str[0] == '\"' || str[0] == '\"') {
+        return str;
+      }
+    }
+
+    char* new_str = (char*) malloc(strlen(str) + 1);
+    memset(new_str, 0, strlen(str) + 1);
+    int i = 0;
+    int len = strlen(str);
+    int index = 0;
+    for (i = 0; i < len; i++) {
+      switch (str[i]) {
+        case '\\':
+          break;
+        default:
+          new_str[index] = str[i];
+          index++;
+          break;
+      }
+    }
+    return new_str;
+  }
+
+  char* address_fix(char* orig_str) {
+    char* str = no_escape(orig_str);
+    char* new_str = (char*) malloc(BUF_SIZE);
+    memset(new_str, 0, BUF_SIZE);
+    int i = 0;
+    int len = strlen(str);
+    int index = 0;
+    int has_altered = FALSE;
+    for (i = 0; i < len; i++) {
+      if (index >= SAFE_SIZE) {
+        break;
+      }
+      switch (str[i]) {
+        case '~':
+          if (str[i+1] != '~') {
+            strncat(new_str, homedir, SAFE_SIZE - strlen(new_str));
+            index = strlen(new_str);
+            has_altered = TRUE;
+            break;
+          }
+          //else fall below
+        default:
+          new_str[index] = str[i];
+          index++;
+          break;
+      }
+    }
+    if (has_altered == FALSE) {
+      free(new_str);
+      return str;
+    } else {
+      return new_str;
+    }
   }
 
 
@@ -486,40 +550,40 @@ body: setusr
 ;
 
 scp: LNXSRV NAME RIGHT_ARROW NAME {
-  lite_scp_to_local(srv, $<string>2, $<string>4);
+  lite_scp_to_local(srv, $<string>2, address_fix($<string>4));
 }
 | LNXSRV NAME LEFT_ARROW NAME {
-  lite_scp_to_server(srv, $<string>4, $<string>2);
+  lite_scp_to_server(srv, address_fix($<string>4), $<string>2);
 }
 | AUTO LNXSRV NAME RIGHT_ARROW NAME {
   char addr[BUF_SIZE];
   memset(addr, 0, BUF_SIZE);
   snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, srv, $<string>3);
-  auto_expect(TRUE, addr, $<string>5);
+  auto_expect(TRUE, addr, address_fix($<string>5));
 }
 | AUTO LNXSRV NAME LEFT_ARROW NAME {
   char addr[BUF_SIZE];
   memset(addr, 0, BUF_SIZE);
   snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, srv, $<string>3);
-  auto_expect(TRUE, $<string>5, addr);
+  auto_expect(TRUE, $<string>5, address_fix(addr));
 }
 | NAME LEFT_ARROW LNXSRV NAME {
-  lite_scp_to_local(srv, $<string>4, $<string>1);
+  lite_scp_to_local(srv, $<string>4, address_fix($<string>1));
 }
 | NAME RIGHT_ARROW LNXSRV NAME {
-  lite_scp_to_server(srv, $<string>1, $<string>4);
+  lite_scp_to_server(srv, address_fix($<string>1), $<string>4);
 }
 | AUTO NAME LEFT_ARROW LNXSRV NAME {
   char addr[BUF_SIZE];
   memset(addr, 0, BUF_SIZE);
   snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, srv, $<string>5);
-  auto_expect(TRUE, addr, $<string>2);
+  auto_expect(TRUE, addr, address_fix($<string>2));
 }
 | AUTO NAME RIGHT_ARROW LNXSRV NAME {
   char addr[BUF_SIZE];
   memset(addr, 0, BUF_SIZE);
   snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, srv, $<string>5);
-  auto_expect(TRUE, $<string>2, addr);
+  auto_expect(TRUE, address_fix($<string>2), addr);
 }
 
 ;

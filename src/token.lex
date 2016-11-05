@@ -58,7 +58,7 @@ bash {return BASH;}
 }
 [ \t] {/*DO NOTHING*/}
 \n {return EOL;}
-[a-zA-Z0-9\/\._\-~\\]+ {
+[a-zA-Z0-9\/\._\-~\\&\*%!]{2,} {
   yylval.string = (char*)malloc(yyleng+1);
   strcpy(yylval.string, yytext);
   return NAME;
