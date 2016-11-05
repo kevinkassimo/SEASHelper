@@ -111,7 +111,6 @@
         break;
       }
     }
-    //printf("%s\n", base_path);
     return SEAS_SUCC;
   }
 
@@ -123,45 +122,45 @@
   }
 
   int usr_fd;
-  int port_fd;
+  int srv_fd;
   int run_fd;
   int runningfile;
 
   char user[BUF_SIZE];
-  int port = 1;
+  int srv = 1;
 
   int rc;
 
-  void lite_login(int port) {
+  void lite_login(int srv) {
     if (strcmp(user, "(null)") == 0) {
       print_warning("Please, set your username! (with command `usr <username>`)\n");
       return;
     }
     char cmd[BUF_SIZE];
     memset(cmd, 0, BUF_SIZE);
-    snprintf(cmd, SAFE_SIZE, "ssh %s@lnxsrv0%d.seas.ucla.edu", user, port);
+    snprintf(cmd, SAFE_SIZE, "ssh %s@lnxsrv0%d.seas.ucla.edu", user, srv);
     system(cmd);
   }
 
-  void lite_scp_to_local(int port, char* from, char* to) {
+  void lite_scp_to_local(int srv, char* from, char* to) {
     if (strcmp(user, "(null)") == 0) {
       print_warning("Please, set your username! (with command `usr <username>`)\n");
       return;
     }
     char cmd[BUF_SIZE];
     memset(cmd, 0, BUF_SIZE);
-    snprintf(cmd, SAFE_SIZE, "scp -r %s@lnxsrv0%d.seas.ucla.edu:%s %s", user, port, from, to);
+    snprintf(cmd, SAFE_SIZE, "scp -r %s@lnxsrv0%d.seas.ucla.edu:%s %s", user, srv, from, to);
     system(cmd);
   }
 
-  void lite_scp_to_server(int port, char* from, char* to) {
+  void lite_scp_to_server(int srv, char* from, char* to) {
     if (strcmp(user, "(null)") == 0) {
       print_warning("Please, set your username! (with command `usr <username>`)\n");
       return;
     }
     char cmd[BUF_SIZE];
     memset(cmd, 0, BUF_SIZE);
-    snprintf(cmd, SAFE_SIZE, "scp -r %s %s@lnxsrv0%d.seas.ucla.edu:%s", from, user, port, to);
+    snprintf(cmd, SAFE_SIZE, "scp -r %s %s@lnxsrv0%d.seas.ucla.edu:%s", from, user, srv, to);
     system(cmd);
   }
 
@@ -298,34 +297,33 @@
     }
     return SEAS_SUCC;
   }
-  int init_port() {
-
+  int init_srv() {
     char working_path[BUF_SIZE];
     memset(working_path, 0, BUF_SIZE);
     snprintf(working_path, SAFE_SIZE, "%s/data", base_path);
     hasdir(working_path, TRUE, S_IRWXU);
 
     //now have .seas_pwd file
-    strncat(working_path, "/.seas_port", SAFE_SIZE - strlen(working_path));
+    strncat(working_path, "/.seas_srv", SAFE_SIZE - strlen(working_path));
 
-    port_fd = getfilefd(working_path, TRUE, O_RDWR, 0777);
+    srv_fd = getfilefd(working_path, TRUE, O_RDWR, 0777);
     int ret;
     char temp;
-    if ((ret = read(port_fd, &temp, 1)) < 0) {
+    if ((ret = read(srv_fd, &temp, 1)) < 0) {
       perror("read");
       return SEAS_FAIL;
     }
     if (ret == 0) {
-      port = 1;
+      srv = 1;
     } else {
-      port = atoi(&temp);
+      srv = atoi(&temp);
     }
     return SEAS_SUCC;
   }
 
 
   int init() {
-    int ret = init_path() | init_mcrypt() | init_pwd() | init_usr() | init_port();
+    int ret = init_path() | init_mcrypt() | init_pwd() | init_usr() | init_srv();
     if (ret != SEAS_SUCC) {
       print_error("Initialization failed\n");
     }
@@ -335,7 +333,7 @@
   void ending() {
     close(pwd_fd);
     close(usr_fd);
-    close(port_fd);
+    close(srv_fd);
     mcrypt_generic_end(td);
   }
 
@@ -405,8 +403,12 @@
   }
 
 
+  //Invoke external expect script
   void auto_expect(int is_scp, char* addr_1, char* addr_2) {
-    fprintf(stderr, "%s\n", addr_1);
+    if (strcmp(user, "(null)") == 0) {
+      print_warning("Please, set your username! (with command `usr <username>`)\n");
+      return;
+    }
 
     int rc = fork();
     if (rc == 0) {
@@ -414,16 +416,12 @@
       memset(expect_path, 0, BUF_SIZE);
       strncat(expect_path, base_path, SAFE_SIZE - strlen(expect_path));
       strncat(expect_path, "/seas_expect", SAFE_SIZE - strlen(expect_path));
-      //fprintf(stderr, "%s", expect_path);
       if (is_scp == TRUE) {
-        //fprintf(stderr, "is_scp\n");
         execlp(expect_path, "---", "1", pwd, addr_1, addr_2, NULL);
       } else {
-        //fprintf(stderr, "is_ssh\n");
         execlp(expect_path, "---", "0", pwd, addr_1, NULL);
       }
       perror("fork");
-      //fprintf(stderr, "%s\n", expect_path);
       exit(EXIT_FAILURE);
     } else {
       wait(NULL);
@@ -438,8 +436,8 @@
 }
 
 %token <number> USR HELP REPO
-%token <number> PORT LOGIN
-%token <number> STAT
+%token <number> SRV LOGIN
+%token <number> INFO
 %token <number> LNXSRV
 %token <number> DEL BASH
 %token <number> AUTO
@@ -466,7 +464,7 @@ prog: %empty {}
 exit(EXIT_SUCCESS);
 }
 | prog HELP EOL {
-  printf("* Usage *\n\tuser *username* : set default username\n\tport *portnum* : set default server number\n\tlogin *optional_portnum* : login to server\n\t@ *server_path* => *local_path\n\t*local_path* => @ *server_path* : download and upload files/directory\n\texit : exit program\n");
+  printf(BOLDBLACK"* Usage *\n\tuser *username*"RESET" : set default username\n\n\t"BOLDBLACK"server <srvnum>"RESET" : set default server number\n\n\t"BOLDBLACK"key"RESET" : save password\n\n\t"BOLDBLACK"auto *optional_srvnum*\n\t! *optional_srvnum*"RESET" : auto login with saved password\n\n\t"BOLDBLACK"login *optional_srvnum*"RESET" : login to server\n\n\t"BOLDBLACK"@ *server_path* => *local_path\n\t*local_path* => @ *server_path*"RESET" : download and upload files/directory\n\n\t"BOLDBLACK"! @ *server_path* => *local_path\n\t! *local_path* => @ *server_path*"RESET" : auto (using saved password) download and upload files/directory\n\n\t"BOLDBLACK"info"RESET" : check current settings\n\n\t"BOLDBLACK"exit : exit program\n"RESET);
 }
 | prog REPO EOL {
 #ifdef __APPLE__
@@ -478,94 +476,102 @@ system("xdg-open https://github.com/kevinkassimo/SEASHelper");
 ;
 
 body: setusr
-| server
-| setport
+| login
+| setsrv
 | scp
-| stat
+| info
 | bash
 | key
 | del
 ;
 
 scp: LNXSRV NAME RIGHT_ARROW NAME {
-  lite_scp_to_local(port, $<string>2, $<string>4);
+  lite_scp_to_local(srv, $<string>2, $<string>4);
 }
 | LNXSRV NAME LEFT_ARROW NAME {
-  lite_scp_to_server(port, $<string>4, $<string>2);
+  lite_scp_to_server(srv, $<string>4, $<string>2);
 }
 | AUTO LNXSRV NAME RIGHT_ARROW NAME {
   char addr[BUF_SIZE];
   memset(addr, 0, BUF_SIZE);
-  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, port, $<string>3);
-  fprintf(stderr, "mark: %s", $<string>5);
+  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, srv, $<string>3);
   auto_expect(TRUE, addr, $<string>5);
 }
 | AUTO LNXSRV NAME LEFT_ARROW NAME {
   char addr[BUF_SIZE];
   memset(addr, 0, BUF_SIZE);
-  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, port, $<string>3);
+  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, srv, $<string>3);
   auto_expect(TRUE, $<string>5, addr);
 }
 | NAME LEFT_ARROW LNXSRV NAME {
-  lite_scp_to_local(port, $<string>4, $<string>1);
+  lite_scp_to_local(srv, $<string>4, $<string>1);
 }
 | NAME RIGHT_ARROW LNXSRV NAME {
-  lite_scp_to_server(port, $<string>1, $<string>4);
+  lite_scp_to_server(srv, $<string>1, $<string>4);
 }
 | AUTO NAME LEFT_ARROW LNXSRV NAME {
   char addr[BUF_SIZE];
   memset(addr, 0, BUF_SIZE);
-  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, port, $<string>5);
+  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, srv, $<string>5);
   auto_expect(TRUE, addr, $<string>2);
 }
 | AUTO NAME RIGHT_ARROW LNXSRV NAME {
   char addr[BUF_SIZE];
   memset(addr, 0, BUF_SIZE);
-  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, port, $<string>5);
+  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu:%s", user, srv, $<string>5);
   auto_expect(TRUE, $<string>2, addr);
 }
 
 ;
 
 
-server: login {
-  lite_login(port);
+login: LOGIN {
+  lite_login(srv);
 }
-| login num %prec lower {
+| LOGIN num %prec lower {
   lite_login($<number>2);
 }
-| AUTO login {
+| AUTO LOGIN {
   char addr[BUF_SIZE];
   memset(addr, 0, BUF_SIZE);
-  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu", user, port);
+  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu", user, srv);
   auto_expect(FALSE, addr, NULL);
 }
 | AUTO {
   char addr[BUF_SIZE];
   memset(addr, 0, BUF_SIZE);
-  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu", user, port);
+  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu", user, srv);
+  auto_expect(FALSE, addr, NULL);
+}
+| AUTO LOGIN num %prec lower {
+  char addr[BUF_SIZE];
+  memset(addr, 0, BUF_SIZE);
+  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu", user, $<number>3);
+  auto_expect(FALSE, addr, NULL);
+}
+| AUTO num %prec lower {
+  char addr[BUF_SIZE];
+  memset(addr, 0, BUF_SIZE);
+  snprintf(addr, SAFE_SIZE, "%s@lnxsrv0%d.seas.ucla.edu", user, $<number>2);
   auto_expect(FALSE, addr, NULL);
 }
 ;
 
-login: LOGIN
-;
-
-setport: port num %prec lower {
+setsrv: srv num %prec lower {
   /*Truncate only when we reset the new name*/
-  ftruncate(port_fd, 0);
+  ftruncate(srv_fd, 0);
   /*Set fd to the start of file*/
-  lseek(port_fd, 0, SEEK_SET);
-  port = $<number>2;
+  lseek(srv_fd, 0, SEEK_SET);
+  srv = $<number>2;
   char* chr = (char*) malloc(sizeof(char) * 2);
-  chr[0] = port + '0';
+  chr[0] = srv + '0';
   chr[1] = '\0';
-  write(port_fd, chr, strlen(chr));
+  write(srv_fd, chr, strlen(chr));
   free(chr);
-  printf("* Default login server has been changed into "BOLDGREEN"# %d\n"RESET, port);
+  printf("* Default login server has been changed into "BOLDGREEN"# %d\n"RESET, srv);
 }
 ;
-port: PORT
+srv: SRV
 ;
 num: NUM
 ;
@@ -588,13 +594,13 @@ usr: USR
 name: NAME
 ;
 
-stat: STAT {
+info: INFO {
   if (strcmp(user, "(null)") == 0) {
     printf("* current username: "BOLDRED"%s"RESET"\n", user);
   } else {
 	  printf("* current username: "BOLDGREEN"%s"RESET"\n", user);
   }
-  printf("* current default port (1~9): "BOLDGREEN"%d"RESET"\n", port);
+  printf("* current default server (1~9): "BOLDGREEN"%d"RESET"\n", srv);
 }
 ;
 
@@ -632,6 +638,16 @@ key: KEY %prec lower {
 del: DEL KEY %prec higher {
   del_pwd();
 }
+| DEL USR %prec higher {
+  if (ftruncate(usr_fd, 0) < 0) {
+  //if (truncate(pwd_path, 0) < 0) {
+    print_error("clear user file error\n");
+  } else {
+    memset(user, 0, BUF_SIZE);
+    strncpy(user, "(null)", SAFE_SIZE);
+    print_normal("* Saved username deleted\n");
+  }
+}
 ;
 %%
 
@@ -658,7 +674,7 @@ void ATEXIT_handler() {
 
 void print_welcome(void) {
   cursorforward(20);
-	printf(BOLDBLACK">> SEASnet Shortcut v0.8 <<"RESET"\n");
+	printf(BOLDBLACK">> SEASnet Shortcut v0.9 <<"RESET"\n");
   cursorforward(17);
 	printf("<< By kevinkassimo (github ID) >>\n");
   printf("===================================================================\n");
@@ -669,7 +685,7 @@ void print_welcome(void) {
 	  printf("* current username: "BOLDGREEN"%s"RESET"\n", user);
   }
   cursorforward(5);
-	printf("* current default port (1~9): "BOLDGREEN"%d"RESET"\n", port);
+	printf("* current default server (1~9): "BOLDGREEN"%d"RESET"\n", srv);
   printf("===================================================================\n");
 }
 
@@ -697,8 +713,8 @@ int main(int argc, char *argv[]) {
 	el_set(_el, EL_HIST, history, _hist);
 
   //fix weird bug
-  if (port == 0) {
-    port = 1;
+  if (srv == 0) {
+    srv = 1;
   }
 
   //Print version

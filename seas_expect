@@ -42,7 +42,7 @@ while (1) {
   }
   eof {
    log_user 1
-   send_user "* Session complete or broken\n"; exit 1;
+   send_user "* Session over\n"; exit 1;
   }
  }
 }

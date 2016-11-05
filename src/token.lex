@@ -16,27 +16,24 @@
 %%
 `u {return USR;}
 `l {return LOGIN;}
-`p {return PORT;}
+`s {return SRV;}
 `e {return EXIT;}
 `h {return HELP;}
 `r {return REPO;}
-`s {return STAT;}
+`i {return INFO;}
 `b {return BASH;}
 `k {return KEY;}
 `d {return DEL;}
 
 user {return USR;}
 usr {return USR;}
-"user:" {return USR;}
-port {return PORT;}
-"port:" {return PORT;}
+server {return SRV;}
+srv {return SRV;}
 log {return LOGIN;}
 login {return LOGIN;}
 exit {return EXIT;}
 
 "@" {return LNXSRV;}
-srv {return LNXSRV;}
-server {return LNXSRV;}
 "<=" {return LEFT_ARROW;}
 "<-" {return LEFT_ARROW;}
 "=>" {return RIGHT_ARROW;}
@@ -48,11 +45,11 @@ password {return KEY;}
 del {return DEL;}
 delete {return DEL;}
 
-"$" {return AUTO;}
+"!" {return AUTO;}
 auto {return AUTO;}
 help {return HELP;}
 repo {return REPO;}
-stat {return STAT;}
+info {return INFO;}
 bash {return BASH;}
 
 [1-9] {
