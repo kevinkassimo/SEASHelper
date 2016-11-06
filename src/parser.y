@@ -79,7 +79,11 @@
 
   int yylex(void);
   void yyerror(char const *s) {
-    fprintf(stderr, BOLDRED"ERROR: %s\n"RESET, s);
+    if (strcmp(s, "syntax error") == 0) {
+      fprintf(stderr, BOLDRED"ERROR: invalid command. Please check README\n"RESET);
+    } else {
+      fprintf(stderr, BOLDRED"ERROR: %s\n"RESET, s);
+    }
   }
 
   //Path of the program

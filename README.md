@@ -171,3 +171,7 @@ Enter password: ... //type password
 > ! @ ~/mydir2 <= localfile
 > exit
 ```
+
+## Known issues
+Currently, SEASHelper still cannot perfectly simulate the parsing of program names similar to bash.  
+Possible error may occur when you type \\"filename\\". Avoid using quotation marks and filenames with whitespace (I will try to fix them)

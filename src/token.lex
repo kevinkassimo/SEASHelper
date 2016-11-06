@@ -11,6 +11,7 @@
 #ifndef BUF_SIZE
 #define BUF_SIZE 1024
 #endif
+  char comment[BUF_SIZE];
 %}
 
 %%
@@ -24,6 +25,9 @@
 `b {return BASH;}
 `k {return KEY;}
 `d {return DEL;}
+`c {
+  system("clear");
+}
 
 user {return USR;}
 usr {return USR;}
@@ -46,11 +50,15 @@ del {return DEL;}
 delete {return DEL;}
 
 "!" {return AUTO;}
+"$" {return BASH;}
 auto {return AUTO;}
 help {return HELP;}
 repo {return REPO;}
 info {return INFO;}
 bash {return BASH;}
+clear {
+  system("clear");
+}
 
 [1-9] {
   yylval.number = atoi(yytext);
@@ -58,10 +66,30 @@ bash {return BASH;}
 }
 [ \t] {/*DO NOTHING*/}
 \n {return EOL;}
-[a-zA-Z0-9\/\._\-~\\&\*%!]{2,} {
+
+[a-zA-Z0-9\/\._\-~\\&\*%^\+=\|\[\]\(\)\{\}`,:;<>\?]{1} {
   yylval.string = (char*)malloc(yyleng+1);
   strcpy(yylval.string, yytext);
   return NAME;
+}
+
+(([a-zA-Z0-9\/\._\-~\\&\*%!^\+=#\|\(\)\[\]\{\}`,:;<>\?\$]{2,})|(\\[\s\t]))+ {
+  /* ((\"[\w]+\")|(\S|\\\s))+ { */
+  yylval.string = (char*)malloc(yyleng+1);
+  strcpy(yylval.string, yytext);
+  return NAME;
+}
+
+^\/\/.*$ {
+  memset(comment, 0, BUF_SIZE);
+  int i;
+  for (i = 2; i < strlen(yytext); i++) {
+    if (yytext[i] != ' ') {
+      break;
+    }
+  }
+  strncpy(comment, &yytext[i], BUF_SIZE-1);
+  printf("COMMENT: %s\n", comment);
 }
 
 %%
