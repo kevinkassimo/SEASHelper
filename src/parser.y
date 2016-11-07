@@ -353,11 +353,16 @@
     new_pwd[strlen(new_pwd)-1] = '\0';
 
     memset(pwd, 0, BUF_SIZE);
+
     if (ftruncate(pwd_fd, 0) < 0) {
     //if (truncate(pwd_path, 0) < 0) {
       print_error("clear password file error\n");
       return;
     }
+    //BUG FIX: lseek reset pwd_fd's location
+    lseek(pwd_fd, 0, SEEK_SET);
+
+    init_mcrypt();
 
     strncat(pwd, new_pwd, SAFE_SIZE);
 
@@ -374,14 +379,14 @@
   }
 
   void del_pwd() {
-    if (strlen(pwd) <= 0) return;
-
+    //if (strlen(pwd) <= 0) return;
     memset(pwd, 0, BUF_SIZE);
     if (ftruncate(pwd_fd, 0) < 0) {
-    //if (truncate(pwd_path, 0) < 0) {
       print_error("clear password file error\n");
       return;
     }
+    //BUG FIX: lseek reset pwd_fd's location
+    lseek(pwd_fd, 0, SEEK_SET);
     print_normal("* Password deleted\n");
   }
 
@@ -787,6 +792,7 @@ int main(int argc, char *argv[]) {
 
   //Print version
   print_welcome();
+  fprintf(stderr, "(Program Directory: %s)\n", base_path);
 
   //looping input and parsing
 	while (true) {
