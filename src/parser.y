@@ -720,6 +720,7 @@ del: DEL KEY %prec higher {
     strncpy(user, "(null)", SAFE_SIZE);
     print_normal("* Saved username deleted\n");
   }
+  lseek(usr_fd, 0, SEEK_SET);
 }
 ;
 %%
