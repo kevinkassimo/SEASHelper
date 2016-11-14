@@ -64,19 +64,27 @@ clear {
   yylval.number = atoi(yytext);
   return NUM;
 }
-[ \t] {/*DO NOTHING*/}
+[ \t] {}
 \n {return EOL;}
 
-[a-zA-Z0-9\/\._\-~\\&\*%^\+=\|\[\]\(\)\{\}`,:;<>\?]{1} {
-  yylval.string = (char*)malloc(yyleng+1);
-  strcpy(yylval.string, yytext);
+
+(\"((?:\\.|[^!@$ \t\n\"]){1}|(?:\\.|[^\t\n\"]){2,})\") {
+  yylval.string = (char*) malloc(yyleng+1);
+  strncpy(yylval.string, &yytext[1], strlen(yytext)-2);
   return NAME;
 }
-
-(([a-zA-Z0-9\/\._\-~\\&\*%!^\+=#\|\(\)\[\]\{\}`,:;<>\?\$]{2,})|(\\[\s\t]))+ {
-  /* ((\"[\w]+\")|(\S|\\\s))+ { */
-  yylval.string = (char*)malloc(yyleng+1);
-  strcpy(yylval.string, yytext);
+(\'((?:\\.|[^!@$ \t\n\']){1}|(?:\\.|[^\t\n\']){2,})\') {
+  yylval.string = (char*) malloc(yyleng+1);
+  strncpy(yylval.string, &yytext[1], strlen(yytext)-2);
+  return NAME;
+}
+((?:\\.|[^!@$ \t\n\'\"]){1}|(?:\\.|[^ \t\n\'\"]){2,}) {
+  yylval.string = (char*) malloc(yyleng+1);
+  if ((yytext[0] == '\'' && yytext[strlen(yytext)-1] == '\'') || (yytext[0] == '\"' && yytext[strlen(yytext)-1] == '\"')) {
+    strncpy(yylval.string, &yytext[1], strlen(yytext)-2);
+  } else {
+    strcpy(yylval.string, yytext);
+  }
   return NAME;
 }
 

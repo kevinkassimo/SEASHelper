@@ -86,6 +86,36 @@
     }
   }
 
+  void bash_str_escaping(char* str, char* out_str) {
+    int i, j;
+    for (i = 0, j = 0; i < strlen(str); i++, j++) {
+      if (str[i] == '&' || str[i] == '|' || str[i] == '\'' || str[i] == '\''|| str[i] == '\"' || str[i] == '?' || str[i] == '*' || str[i] == '%' || str[i] == '<' || str[i] == '>' || str[i] == ' ') {
+        if (i > 0) {
+          if (i > 1) {
+            if (str[i-1] != '\\') {
+              out_str[j] = '\\';
+              j++;
+            } else {
+              if (str[i-2] == '\\') {
+                out_str[j] = '\\';
+                j++;
+              }
+            }
+          } else {
+            if (str[i-1] != '\\') {
+              out_str[j] = '\\';
+              j++;
+            }
+          }
+        } else {
+          out_str[j] = '\\';
+          j++;
+        }
+      }
+      out_str[j] = str[i];
+    }
+  }
+
   //Path of the program
   char base_path[BUF_SIZE];
   //Initialize the path of the program
@@ -266,7 +296,7 @@
     pwd_fd = getfilefd(working_path, TRUE, O_RDWR, 0777);
     int ret;
     if ((ret = read(pwd_fd, pwd, SAFE_SIZE)) < 0) {
-      perror("read");
+      perror("read_pwd");
       return SEAS_FAIL;
     }
     //Save path for later easy use
@@ -294,7 +324,7 @@
     usr_fd = getfilefd(working_path, TRUE, O_RDWR, 0777);
     int ret;
     if ((ret = read(usr_fd, user, SAFE_SIZE)) < 0) {
-      perror("read");
+      perror("read_usr");
       return SEAS_FAIL;
     }
     if (ret == 0) {
@@ -315,7 +345,7 @@
     int ret;
     char temp;
     if ((ret = read(srv_fd, &temp, 1)) < 0) {
-      perror("read");
+      perror("read_srv");
       return SEAS_FAIL;
     }
     if (ret == 0) {
@@ -720,7 +750,6 @@ del: DEL KEY %prec higher {
     strncpy(user, "(null)", SAFE_SIZE);
     print_normal("* Saved username deleted\n");
   }
-  lseek(usr_fd, 0, SEEK_SET);
 }
 ;
 %%

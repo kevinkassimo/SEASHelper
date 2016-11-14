@@ -1,5 +1,8 @@
 # SEASnet Linux Server Login Helper
 
+## What's new in V0.9.1
+__Fixed Quote & Escape Character "\" Parsing Error!__
+
 ## What's new in V0.9
 __Support of Automatic login and upload/download (saving your password)!__
 __More accurate command names!__
@@ -171,7 +174,3 @@ Enter password: ... //type password
 > ! @ ~/mydir2 <= localfile
 > exit
 ```
-
-## Known issues
-Currently, SEASHelper still cannot perfectly simulate the parsing of program names similar to bash.  
-Possible error may occur when you type \\"filename\\". Avoid using quotation marks and filenames with whitespace (I will try to fix them)
