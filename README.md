@@ -1,5 +1,10 @@
 # SEASnet Linux Server Login Helper
 
+## RELEASE v1.0
+I myself has been testing this program for a long time and using it daily for my own projects. Indubitably there are still tons of bugs, security worries, terrible performance issues due to poor designs, etc...
+
+__PLEASE help optimizing this program & reporting/fixing bugs if possible! I really hope that someone can also join to further polish this program __
+
 ## What's new in V0.9.1
 __Fixed Quote & Escape Character "\" Parsing Error!__
 

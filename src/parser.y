@@ -132,7 +132,7 @@
       return SEAS_FAIL;
   }
 #elif __linux__
-    snprintf(base_path, SAFE_SIZE, "/proc/self/exe");
+    snprintf(temp, SAFE_SIZE, "/proc/%d/exe", getpid());
     //Use readlink to retrieve the base path
     if (readlink(temp, base_path, PATH_MAX) == -1) {
       perror("readlink");
@@ -776,8 +776,8 @@ void ATEXIT_handler() {
 }
 
 void print_welcome(void) {
-  cursorforward(20);
-	printf(BOLDBLACK">> SEASnet Shortcut v0.9 <<"RESET"\n");
+  cursorforward(18);
+	printf(BOLDBLACK">> SEASHelper V1.0 (Release) <<"RESET"\n");
   cursorforward(17);
 	printf("<< By kevinkassimo (github ID) >>\n");
   printf("===================================================================\n");
