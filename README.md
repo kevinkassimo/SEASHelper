@@ -1,9 +1,11 @@
-# SEASnet Linux Server Login Helper
+# SEASHelper (SEASnet Linux Server Login Helper)
 
 ## RELEASE v1.0
+__A Linux version of the program is included (built under Ubuntu)__
+
 I myself has been testing this program for a long time and using it daily for my own projects. Indubitably there are still tons of bugs, security worries, terrible performance issues due to poor designs, etc...
 
-__PLEASE help optimizing this program & reporting/fixing bugs if possible! I really hope that someone can also join to further polish this program __
+__PLEASE help optimizing this program & reporting/fixing bugs if possible! I really hope that someone can also join to further polish this program__
 
 ## What's new in V0.9.1
 __Fixed Quote & Escape Character "\" Parsing Error!__
@@ -15,16 +17,14 @@ __Nice (actually pretty ugly) Colors!__
 
 ## Build
 type `make` in terminal to build.
-This requires flex and bison. If you want to build yourself, run `make required`. __ELSE__ just directly use the "seas" file included in this repository
+This requires flex and bison. If you want to build yourself, remember to run `make required` to install required files. __ELSE__ just directly use the "seas_mac" or "seas_lnx" file included in this repository
 
 To allow `seas` as alias for this helper, type `make mark` to record alias in ~/.bash_profile  
 __Warning: the default__ `make mark` __would use .bash_profile as source. (possibly replacing .bashrc)__
-__Also, before you use make mark, put this folder at some place appropriate. Later uses of the seas command will be based on the path of your base folder. Avoid moving ./seas around__
+__Also, before you use make mark, put this folder at some place appropriate. Later uses of the seas command will be based on the path of your base folder. Avoid moving ./seas_mac or ./seas_lnx around__
 
 To remove the mark, type `make unmark`  
 To clean up files used for compilation, type `make clean`
-
-__Notice: the included binary files / Makefile is for OS X only. To build on Linux, you need libmcrypt, libedit, bison and flex, and you are supposed to manually compile yourself (I may consider upload a Ubuntu binary in the future)__
 
 __IMPORTANT: this helper uses mcrypt for encyption of saved password. The key is saved in the source code under Macro__ `PWD_KEY` __. This helper DOES NOT provide safety warranty. If you are kind of worried, modify the macro yourself (into some other numbers, but remember digit chars only, no other type of chars), recompile the program and permanently delete the source file.__
 
@@ -32,7 +32,9 @@ __DO NOT REMOVE seas_expect PROGRAM SINCE AUTO LOGIN IS USING IT!__
 
 ## Run
 type
-`./seas`  
+`./seas_mac`  
+or  
+`./seas_lnx`  
 if shortcut is set using `make mark`, you can type  
 `seas`
 
@@ -161,9 +163,9 @@ exit
 ## Example
 ```
 [username@port]$ seas
->> SEASnet shortcut v0.9 <<
+>> SEASHelper v1.0 (Release) <<
 >> //blah blah blah
-> user joebruin
+> usr joebruin
 > srv 1
 > login
 > //type password
