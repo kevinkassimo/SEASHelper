@@ -1,5 +1,8 @@
 # SEASHelper (SEASnet Linux Server Login Helper)
 
+## DEMO (GIF)
+![DEMO GIF](/demo/DEMO.gif)
+
 ## RELEASE v1.0
 __A Linux version of the program is included (built under Ubuntu)__
 
