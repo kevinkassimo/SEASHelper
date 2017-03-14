@@ -447,7 +447,7 @@
 
   char* no_escape(char* str) {
     if (strlen(str) > 0) {
-      if (str[0] == '\"' || str[0] == '\"') {
+      if (str[0] == '\"' || str[0] == '\'') {
         return str;
       }
     }
@@ -471,6 +471,20 @@
   }
 
   char* address_fix(char* orig_str) {
+    char* str = no_escape(orig_str);
+    // According to testing with bash, ~ is only replaceable with $HOME if ~ is EXACTLY the first char of path
+    if (str[0] == '~' && (strlen(str) == 1 || str[1] == '/')) {
+      char* new_str = (char*) malloc(BUF_SIZE);
+      memset(new_str, 0, BUF_SIZE);
+      strncat(new_str, homedir, SAFE_SIZE);
+      strncat(&new_str[strlen(new_str)], &str[1], SAFE_SIZE-1);
+      return new_str;
+    } else {
+      return str;
+    }
+  }
+
+  /*char* address_fix(char* orig_str) {
     char* str = no_escape(orig_str);
     char* new_str = (char*) malloc(BUF_SIZE);
     memset(new_str, 0, BUF_SIZE);
@@ -503,7 +517,7 @@
     } else {
       return new_str;
     }
-  }
+  }*/
 
 
   //Invoke external expect script

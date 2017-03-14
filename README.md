@@ -3,6 +3,9 @@
 ## DEMO (GIF)
 ![DEMO GIF](/demo/DEMO.gif)
 
+## Fix March 14  
+Fixing a mistype of brackets and tilde (~) $HOME replacement design mistake   
+
 ## RELEASE v1.0
 __A Linux version of the program is included (built under Ubuntu)__
 
@@ -10,13 +13,11 @@ I myself has been testing this program for a long time and using it daily for my
 
 __PLEASE help optimizing this program & reporting/fixing bugs if possible! I really hope that someone can also join to further polish this program__
 
-## What's new in V0.9.1
-__Fixed Quote & Escape Character "\" Parsing Error!__
-
-## What's new in V0.9
-__Support of Automatic login and upload/download (saving your password)!__
-__More accurate command names!__
-__Nice (actually pretty ugly) Colors!__
+## Dependencies
+#### Compiling
+flex, bison/yacc, libmcrypt, libedit, gcc  
+#### Running
+expect (usually preinstalled on Mac and Linux)
 
 ## Build
 type `make` in terminal to build.
@@ -109,14 +110,14 @@ log
 __WARNING: no server is specified, since it is usually not required (all servers yields the same files)__
 ```
 //download to local
-@ <server_path_without_lnxsrv_header> => <local_path>
+@ <server_path_without_lnxsrv_prefix> => <local_path>
 //or
-<local_path> <= @ <server_path_without_lnxsrv_header>
+<local_path> <= @ <server_path_without_lnxsrv_prefix>
 
 //upload to server
-@ <server_path_without_lnxsrv_header> <= <local_path>
+@ <server_path_without_lnxsrv_prefix> <= <local_path>
 //or
-<local_path> => @ <server_path_without_lnxsrv_header>
+<local_path> => @ <server_path_without_lnxsrv_prefix>
 ```
 
 ### Automatic download and upload (password automatically entered)
@@ -183,4 +184,17 @@ Enter password: ... //type password
 > //type password
 > ! @ ~/mydir2 <= localfile
 > exit
+```
+
+### Comparison with SSH and SCP
+```
+> ssh joe@lnxsrv09.seas.ucla.edu
+Enter password: ...
+// equivalent to (with usr joe, srv 9 and password saved)
+> !
+
+> scp -r dir/file joe@lnxsrv09.seas.ucla.edu:~/somedir
+Enter password: ...
+// equivalent to (with usr joe, srv 9 and password saved)
+> ! dir/file => @ ~/somedir
 ```
