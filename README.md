@@ -4,20 +4,22 @@
 ![DEMO GIF](/demo/DEMO.gif)
 
 ## Fix March 14  
-Fixing a mistype of brackets and tilde (~) $HOME replacement design mistake   
+Fixed a mistype of quotation marks, `~` to `$HOME` replacement design problem, and *expect* `scp` wildcard support problem, and recompiled the Mac version (Ubuntu version would be recompiled soon)  
 
 ## RELEASE v1.0
 __A Linux version of the program is included (built under Ubuntu)__
 
 I myself has been testing this program for a long time and using it daily for my own projects. Indubitably there are still tons of bugs, security worries, terrible performance issues due to poor designs, etc...
 
-__PLEASE help optimizing this program & reporting/fixing bugs if possible! I really hope that someone can also join to further polish this program__
+__PLEASE help optimize this program & report/fix bugs if possible! I really hope that someone can join to further polish this tool...__
 
 ## Dependencies
 #### Compiling
-flex, bison/yacc, libmcrypt, libedit, gcc  
+flex, bison/yacc (MacOS's preinstalled version is ancient), libmcrypt, libedit, gcc  
 #### Running
-expect (usually preinstalled on Mac and Linux)
+expect (usually preinstalled on Mac and Linux)  
+#### Warning
+The Makefile's `make build` should not work on your machine (which is depending on my own laptop settings. Nevertheless you could use it as a reference for your own recompilation)  
 
 ## Build
 type `make` in terminal to build.
@@ -193,8 +195,8 @@ Enter password: ...
 // equivalent to (with usr joe, srv 9 and password saved)
 > !
 
-> scp -r dir/file joe@lnxsrv09.seas.ucla.edu:~/somedir
+> scp -r dir/folder joe@lnxsrv09.seas.ucla.edu:~/somedir
 Enter password: ...
 // equivalent to (with usr joe, srv 9 and password saved)
-> ! dir/file => @ ~/somedir
+> ! dir/folder => @ ~/somedir
 ```

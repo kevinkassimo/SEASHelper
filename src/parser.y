@@ -484,42 +484,6 @@
     }
   }
 
-  /*char* address_fix(char* orig_str) {
-    char* str = no_escape(orig_str);
-    char* new_str = (char*) malloc(BUF_SIZE);
-    memset(new_str, 0, BUF_SIZE);
-    int i = 0;
-    int len = strlen(str);
-    int index = 0;
-    int has_altered = FALSE;
-    for (i = 0; i < len; i++) {
-      if (index >= SAFE_SIZE) {
-        break;
-      }
-      switch (str[i]) {
-        case '~':
-          if (str[i+1] != '~') {
-            strncat(new_str, homedir, SAFE_SIZE - strlen(new_str));
-            index = strlen(new_str);
-            has_altered = TRUE;
-            break;
-          }
-          //else fall below
-        default:
-          new_str[index] = str[i];
-          index++;
-          break;
-      }
-    }
-    if (has_altered == FALSE) {
-      free(new_str);
-      return str;
-    } else {
-      return new_str;
-    }
-  }*/
-
-
   //Invoke external expect script
   void auto_expect(int is_scp, char* addr_1, char* addr_2) {
     if (strcmp(user, "(null)") == 0) {
@@ -581,7 +545,7 @@ prog: %empty {}
 exit(EXIT_SUCCESS);
 }
 | prog HELP EOL {
-  printf(BOLDBLACK"* Usage *\n\tuser *username*"RESET" : set default username\n\n\t"BOLDBLACK"server <srvnum>"RESET" : set default server number\n\n\t"BOLDBLACK"key"RESET" : save password\n\n\t"BOLDBLACK"auto *optional_srvnum*\n\t! *optional_srvnum*"RESET" : auto login with saved password\n\n\t"BOLDBLACK"login *optional_srvnum*"RESET" : login to server\n\n\t"BOLDBLACK"@ *server_path* => *local_path\n\t*local_path* => @ *server_path*"RESET" : download and upload files/directory\n\n\t"BOLDBLACK"! @ *server_path* => *local_path\n\t! *local_path* => @ *server_path*"RESET" : auto (using saved password) download and upload files/directory\n\n\t"BOLDBLACK"info"RESET" : check current settings\n\n\t"BOLDBLACK"exit : exit program\n"RESET);
+  printf(BOLDBLACK"* Usage *\n\tuser <username>"RESET" : set default username\n\n\t"BOLDBLACK"server <srvnum>"RESET" : set default server number\n\n\t"BOLDBLACK"key"RESET" : save password\n\n\t"BOLDBLACK"auto <optional_srvnum>\n\t! <optional_srvnum>"RESET" : auto login with saved password\n\n\t"BOLDBLACK"login <optional_srvnum>"RESET" : login to server\n\n\t"BOLDBLACK"@ <server_path> => <local_path>\n\t<local_path> => @ <server_path>"RESET" : download and upload files/directory\n\n\t"BOLDBLACK"! @ <server_path> => <local_path>\n\t! <local_path> => @ <server_path>"RESET" : auto (using saved password) download and upload files/directory\n\n\t"BOLDBLACK"info"RESET" : check current settings\n\n\t"BOLDBLACK"exit"RESET" : exit program\n");
 }
 | prog REPO EOL {
 #ifdef __APPLE__
@@ -685,7 +649,7 @@ setsrv: srv num %prec lower {
   chr[1] = '\0';
   write(srv_fd, chr, strlen(chr));
   free(chr);
-  printf("* Default login server has been changed into "BOLDGREEN"# %d\n"RESET, srv);
+  printf("* Default login server has been changed to "BOLDGREEN"# %d\n"RESET, srv);
 }
 ;
 srv: SRV
@@ -703,7 +667,7 @@ setusr: usr name {
   if (write(usr_fd, user, strlen(user)) < 0) {
     print_error("Save username failed\n");
   }
-  printf("* Username has been changed into: "BOLDGREEN"%s\n"RESET, user);
+  printf("* Username has been changed to: "BOLDGREEN"%s\n"RESET, user);
 }
 ;
 usr: USR

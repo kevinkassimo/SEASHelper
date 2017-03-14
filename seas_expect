@@ -11,7 +11,9 @@ set addr_2 [lindex $argv 3]
 if { $is_scp == "0" } {
   spawn ssh $addr_1
 } elseif { $is_scp == "1" } {
-  spawn scp -r $addr_1 $addr_2
+  # Update expect script to support wildcard
+  # spawn scp -r $addr_1 $addr_2
+  spawn bash -c "scp -r $addr_1 $addr_2"
 } else {
   log_user 1
   send_user "ERROR: Expect script bugged";
