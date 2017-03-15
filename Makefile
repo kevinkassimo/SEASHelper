@@ -23,8 +23,8 @@ build:
 ifeq ($(OS), Darwin)
 	@ flex src/token.lex
 	@ bison -d src/parser.y
-#	@ gcc -o seas_mac parser.tab.c lex.yy.c -ll -ledit -I/usr/local/Cellar/mcrypt/2.6.8/include -L/usr/local/Cellar/mcrypt/2.6.8/lib -lmcrypt
-	@ gcc -o seas_mac parser.tab.c lex.yy.c -I./bin/libmcrypt/include -L./bin/libmcrypt/lib -lmcrypt -I./bin/libedit/include -L./bin/libedit/lib -ledit
+	@ gcc -o seas_mac parser.tab.c lex.yy.c -ll -ledit -I/usr/local/Cellar/mcrypt/2.6.8/include -L/usr/local/Cellar/mcrypt/2.6.8/lib -lmcrypt
+#	@ gcc -o seas_mac parser.tab.c lex.yy.c -I./bin/libmcrypt/include -L./bin/libmcrypt/lib -lmcrypt -I./bin/libedit/include -L./bin/libedit/lib -ledit
 else
 	@ flex src/token.lex
 	@ bison -d src/parser.y
@@ -35,6 +35,8 @@ required:
 ifeq ($(OS), Darwin)
 	@ brew install flex
 	@ brew install bison
+	@ brew install mcrypt
+	@ brew install libedit
 else
 	@ sudo apt-get install mcrypt
 	@ sudo apt-get install ledit

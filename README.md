@@ -3,8 +3,8 @@
 ## DEMO (GIF)
 ![DEMO GIF](/demo/DEMO.gif)
 
-## Fix March 15
-Fixing dylib problem on MacOS (some weird behavior over libmcrypt)
+## Issues March 15
+Seems there is currently no libmcrypt.a other than libmcrypt.dylib. Will probe further on the problem later. Currently, be careful of the installed path of mcrypt (should be, using *latest version* of HomeBrew, at `/usr/local/Cellar/mcrypt/2.6.8` by default). View __dependencies__ below. (Sorry for the trouble, as the copy of dylib in `bin` currently does not work...) Please file an Issue if the downloaded program won't run.  
 
 ## Fix March 14  
 Fixed a mistype of quotation marks, `~` to `$HOME` replacement design problem, and *expect* `scp` wildcard support problem, and recompiled the Mac version (Ubuntu version would be recompiled soon)  
@@ -20,7 +20,10 @@ __PLEASE help optimize this program & report/fix bugs if possible! I really hope
 #### Compiling
 flex, bison/yacc (MacOS's preinstalled version is ancient), libmcrypt, libedit, gcc  
 #### Running
-expect (usually preinstalled on Mac and Linux) 
+expect (usually preinstalled on Mac and Linux)  
+mcrypt (dynamically linked. IF on macOS, install using `brew install mcrypt`, should be at `/usr/local/Cellar/mcrypt/2.6.8` *by default*)  
+libedit (dynamically linked)  
+If you are running on macOS, you can use `make required` to install these dependencies
 #### Warning
 The Makefile's `make build` should not work on your machine (which is depending on my own laptop settings. Nevertheless you could use it as a reference for your own recompilation)  
 
